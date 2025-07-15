@@ -55,6 +55,9 @@ public class WeatherMarshaller implements Marshaller, Unmarshaller, Initializing
 	@Value("${weather.service.namespace:https://ws.cdyne.com/WeatherWS/}")
 	private String namespace;
 
+    @Value("${weather.service.getCityWeatherByZIP.uri:<uri>}")
+    private String getCityWeatherByZIPUri;
+
 	public Object unmarshal(Source source) throws IOException, XmlMappingException {
 
 		//this.writeXml(((DOMSource)source).getNode().getOwnerDocument());

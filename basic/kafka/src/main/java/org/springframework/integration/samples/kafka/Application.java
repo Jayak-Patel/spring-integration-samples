@@ -7,7 +7,8 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
@@ -31,7 +32,9 @@ import org.springframework.messaging.MessageHandler;
 @SpringBootApplication
 public class Application {
 
-	private final static SpelExpressionParser PARSER = new SpelExpressionParser();
+	private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
+
+	private static final SpelExpressionParser PARSER = new SpelExpressionParser();
 
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);
@@ -109,7 +112,7 @@ public class Application {
 	@ServiceActivator(inputChannel = "fromKafka")
 	public MessageHandler handler() {
 		return message -> {
-			System.out.println(message.getPayload());
+			LOGGER.info(message.getPayload().toString());
 		};
 	}
 

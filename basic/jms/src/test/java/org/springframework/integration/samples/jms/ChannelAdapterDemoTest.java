@@ -31,7 +31,7 @@ class ChannelAdapterDemoTest extends ActiveMQMultiContextTests {
 	};
 
 	@Test
-	void testChannelAdapterDemo() throws InterruptedException {
+	void testChannelAdapterDemo() {
 
 		System.setProperty("spring.profiles.active", "testCase");
 

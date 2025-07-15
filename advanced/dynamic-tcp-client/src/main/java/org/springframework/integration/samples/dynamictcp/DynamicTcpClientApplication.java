@@ -136,11 +136,16 @@ public class DynamicTcpClientApplication {
 
 		@Override
 		protected synchronized Collection<MessageChannel> determineTargetChannels(Message<?> message) {
-			MessageChannel channel = this.subFlows
-					.get(message.getHeaders().get("host", String.class) + message.getHeaders().get("port"));
+			String host = message.getHeaders().get("host", String.class);
+			Integer port = message.getHeaders().get("port", Integer.class);
+			String hostPort = host + port;
+
+			MessageChannel channel = this.subFlows.get(hostPort);
+
 			if (channel == null) {
 				channel = createNewSubflow(message);
 			}
+
 			return Collections.singletonList(channel);
 		}
 
@@ -153,22 +158,28 @@ public class DynamicTcpClientApplication {
 			TcpNetClientConnectionFactory cf = new TcpNetClientConnectionFactory(host, port);
 			TcpSendingMessageHandler handler = new TcpSendingMessageHandler();
 			handler.setConnectionFactory(cf);
+			// Check if the connection factory is already started before starting it.
+			if (!cf.isRunning()) {
+				cf.start();
+			}
+
 			IntegrationFlow flow = f -> f.handle(handler);
+
 			IntegrationFlowContext.IntegrationFlowRegistration flowRegistration =
 					this.flowContext.registration(flow)
 							.addBean(cf)
-							.id(hostPort + ".flow")
+							.id(String.format("%s.flow", hostPort))
 							.register();
 			MessageChannel inputChannel = flowRegistration.getInputChannel();
 			this.subFlows.put(hostPort, inputChannel);
-			LOGGER.info("Created new subflow for hostPort: " + hostPort);
+			LOGGER.info("Created new subflow for hostPort: {}", hostPort);
 			return inputChannel;
 		}
 
 		private void removeSubFlow(Entry<String, MessageChannel> eldest) {
 			String hostPort = eldest.getKey();
-			this.flowContext.remove(hostPort + ".flow");
-			LOGGER.info("Removed subflow for hostPort: " + hostPort);
+			this.flowContext.remove(String.format("%s.flow", hostPort));
+			LOGGER.info("Removed subflow for hostPort: {}", hostPort);
 		}
 
 	}

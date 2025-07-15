@@ -6,15 +6,11 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 package org.springframework.integration.samples.mongodb.outbound;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.integration.samples.mongodb.domain.Address;
 import org.springframework.integration.samples.mongodb.domain.Person;
@@ -28,6 +24,8 @@ import org.springframework.messaging.support.GenericMessage;
 */
 public class MongoDbOutboundAdapterDemo {
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbOutboundAdapterDemo.class);
+
 	/**
 	 * @param args
 	 */
@@ -37,7 +35,7 @@ public class MongoDbOutboundAdapterDemo {
 			new MongoDbOutboundAdapterDemo().runDefaultAdapter();
 		}
 		catch (DemoException e) {
-			System.err.println("An error occurred during the demo: " + e.getMessage());
+			LOGGER.error("An error occurred during the demo: " + e.getMessage());
 		}
 	}
 

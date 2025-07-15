@@ -12,6 +12,8 @@ package org.springframework.integration.samples.jms;
 
 import java.util.Scanner;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
@@ -28,6 +30,8 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
  * @author Gary Russell
  */
 public class Main {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
 	private final static String[] configFilesGatewayDemo = {
 		"/META-INF/spring/integration/common.xml",
@@ -50,7 +54,7 @@ public class Main {
 
 		final Scanner scanner = new Scanner(System.in);
 
-		System.out.println("""
+		LOGGER.info("""
 
 				=========================================================
 				                                                         
@@ -64,37 +68,37 @@ public class Main {
 
 		ActiveMqTestUtils.prepare();
 
-		System.out.println("\n    Which Demo would you like to run? <enter>:\n");
-		System.out.println("\t1. Channel Adapter Demo");
-		System.out.println("\t2. Gateway Demo");
-		System.out.println("\t3. Aggregation Demo");
+		LOGGER.info("\n    Which Demo would you like to run? <enter>:\n");
+		LOGGER.info("\t1. Channel Adapter Demo");
+		LOGGER.info("\t2. Gateway Demo");
+		LOGGER.info("\t3. Aggregation Demo");
 
 		while (true) {
 			final String input = scanner.nextLine();
 
 			if("1".equals(input.trim())) {
-				System.out.println("    Loading Channel Adapter Demo...");
+				LOGGER.info("    Loading Channel Adapter Demo...");
 				new ClassPathXmlApplicationContext(configFilesChannelAdapterDemo, Main.class);
 				break;
 			}
 			else if("2".equals(input.trim())) {
-				System.out.println("    Loading Gateway Demo...");
+				LOGGER.info("    Loading Gateway Demo...");
 				new ClassPathXmlApplicationContext(configFilesGatewayDemo, Main.class);
 				break;
 			}
 			else if("3".equals(input.trim())) {
-				System.out.println("    Loading Aggregation Demo...");
+				LOGGER.info("    Loading Aggregation Demo...");
 				new ClassPathXmlApplicationContext(configFilesAggregationDemo, Main.class);
 				break;
 			}
 			else {
-				System.out.println("Invalid choice\n\n");
-				System.out.print("Enter you choice: ");
+				LOGGER.info("Invalid choice\n\n");
+				LOGGER.info("Enter you choice: ");
 			}
 
 		}
 
-		System.out.println("    Please type something and hit <enter>\n");
+		LOGGER.info("    Please type something and hit <enter>\n");
 		scanner.close();
 
 	}

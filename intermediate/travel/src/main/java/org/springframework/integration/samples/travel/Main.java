@@ -47,7 +47,7 @@ public final class Main {
 
 		final Scanner scanner = new Scanner(System.in);
 
-		System.out.println("""
+		LOGGER.info("""
 
 				=========================================================
 				                                                         
@@ -59,19 +59,19 @@ public final class Main {
 				=========================================================
 				""");
 
-		System.out.println("Please select the city, for which you would like to get traffic and weather information:");
+		LOGGER.info("Please select the city, for which you would like to get traffic and weather information:");
 
 		for (City city : City.values()) {
-			System.out.println(String.format("\t%s. %s", city.getId(), city.getName()));
+			LOGGER.info(String.format("\t%s. %s", city.getId(), city.getName()));
 		}
-		System.out.println("\tq. Quit the application");
-		System.out.print("Enter your choice: ");
+		LOGGER.info("\tq. Quit the application");
+		LOGGER.info("Enter your choice: ");
 
 		while (true) {
 			final String input = scanner.nextLine();
 
 			if("q".equals(input.trim())) {
-				System.out.println("Exiting application...bye.");
+				LOGGER.info("Exiting application...bye.");
 				break;
 			}
 			else {
@@ -81,37 +81,35 @@ public final class Main {
 
 				final String weatherReply = travelGateway.getWeatherByCity(city);
 
-				System.out.println("""
+				LOGGER.info("""
 
 						=========================================================
 						    Weather:
 						=========================================================
-						""");
-				System.out.println(weatherReply);
+						{}""", weatherReply);
 
 				if (mapQuestApiKeyDefined) {
 					final String trafficReply = travelGateway.getTrafficByCity(city);
 
-					System.out.println("""
+					LOGGER.info("""
 
 							=========================================================
 							    Traffic:
 							=========================================================
-							""");
-					System.out.println(trafficReply);
+							{}""", trafficReply);
 				}
 				else {
 					LOGGER.warn("Skipping Traffic Information call. Did you setup your MapQuest API Key? " +
 							"e.g. by calling:\n\n    $ mvn exec:java -Dmapquest.apikey=\"your_mapquest_api_key_url_decoded\"");
 				}
 
-				System.out.println("""
+				LOGGER.info("""
 
 						=========================================================
 						    Done.
 						=========================================================
 						""");
-				System.out.print("Enter your choice: ");
+				LOGGER.info("Enter your choice: ");
 			}
 		}
 

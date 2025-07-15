@@ -198,21 +198,7 @@ public class TcpBroadcastApplication {
 				socket = SocketFactory.getDefault().createSocket("localhost", PORT);
 				socket.getOutputStream().write("hello\r\n".getBytes());
 				InputStream is = socket.getInputStream();
-				while (true) {
-					try {
-						byte[] data = deserializer.deserialize(is);
-						if (data != null) {
-							String receivedMessage = new String(data);
-							LOGGER.info(receivedMessage + " from client# " + instance);
-						} else {
-							LOGGER.warn("Received null data from the server.");
-							break; // Exit loop if null is received, indicating a potential disconnect.
-						}
-					} catch (IOException e) {
-						LOGGER.error("Error while reading or deserializing message from socket", e);
-						break; // Exit the loop on an exception
-					}
-				}
+				readMessages(is, instance);
 			}
 			catch (IOException e) {
 				LOGGER.error("Error occurred while creating or writing to socket", e);
@@ -225,6 +211,25 @@ public class TcpBroadcastApplication {
 					catch (IOException e) {
 						LOGGER.error("Error while closing socket", e);
 					}
+				}
+			}
+		}
+
+		private void readMessages(InputStream is, int instance) {
+			boolean running = true;
+			while (running) {
+				try {
+					byte[] data = deserializer.deserialize(is);
+					if (data != null) {
+						String receivedMessage = new String(data);
+						LOGGER.info(receivedMessage + " from client# " + instance);
+					} else {
+						LOGGER.warn("Received null data from the server.");
+						running = false;
+					}
+				} catch (IOException e) {
+					LOGGER.error("Error while reading or deserializing message from socket", e);
+					running = false;
 				}
 			}
 		}

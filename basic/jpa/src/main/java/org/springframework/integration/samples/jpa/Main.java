@@ -14,6 +14,8 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Scanner;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
@@ -38,6 +40,8 @@ import org.springframework.util.StringUtils;
 @ImportResource("spring-integration-context.xml")
 public class Main {
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd' 'HH:mm:ss");
 
 	/**
@@ -49,7 +53,7 @@ public class Main {
 
 		final Scanner scanner = new Scanner(System.in);
 
-		System.out.println("""
+		LOGGER.info("""
 
 				=========================================================
 				                                                         
@@ -67,11 +71,11 @@ public class Main {
 
 		final PersonService personService = context.getBean(PersonService.class);
 
-		System.out.println("Please enter a choice and press <enter>: ");
-		System.out.println("\t1. List all people");
-		System.out.println("\t2. Create a new person");
-		System.out.println("\tq. Quit the application");
-		System.out.print("Enter you choice: ");
+		LOGGER.info("Please enter a choice and press <enter>: ");
+		LOGGER.info("\t1. List all people");
+		LOGGER.info("\t2. Create a new person");
+		LOGGER.info("\tq. Quit the application");
+		LOGGER.info("Enter you choice: ");
 
 		while (true) {
 			final String input = scanner.nextLine();
@@ -86,17 +90,17 @@ public class Main {
 				break;
 			}
 			else {
-				System.out.println("Invalid choice\n\n");
+				LOGGER.info("Invalid choice\n\n");
 			}
 
-			System.out.println("Please enter a choice and press <enter>: ");
-			System.out.println("\t1. List all people");
-			System.out.println("\t2. Create a new person");
-			System.out.println("\tq. Quit the application");
-			System.out.print("Enter you choice: ");
+			LOGGER.info("Please enter a choice and press <enter>: ");
+			LOGGER.info("\t1. List all people");
+			LOGGER.info("\t2. Create a new person");
+			LOGGER.info("\tq. Quit the application");
+			LOGGER.info("Enter you choice: ");
 		}
 
-		System.out.println("Exiting application...bye.");
+		LOGGER.info("Exiting application...bye.");
 		context.close();
 		System.exit(0);
 
@@ -104,7 +108,7 @@ public class Main {
 
 	private static void createPersonDetails(final Scanner scanner, PersonService service) {
 		while (true) {
-			System.out.print("\nEnter the Person's name:");
+			LOGGER.info("\nEnter the Person's name:");
 			String name = null;
 
 			while (true) {
@@ -115,15 +119,15 @@ public class Main {
 					break;
 				}
 
-				System.out.print("No text entered....Please enter a name:");
+				LOGGER.info("No text entered....Please enter a name:");
 
 			}
 
 			Person person = new Person();
 			person.setName(name);
 			person = service.createPerson(person);
-			System.out.println("Created person record with id: " + person.getId());
-			System.out.print("Do you want to create another person? (y/n)");
+			LOGGER.info("Created person record with id: " + person.getId());
+			LOGGER.info("Do you want to create another person? (y/n)");
 			String choice = scanner.nextLine();
 
 			if (!"y".equalsIgnoreCase(choice)) {
@@ -134,23 +138,23 @@ public class Main {
 
 	private static void findPeople(final PersonService service) {
 
-		System.out.println("ID            NAME         CREATED");
-		System.out.println("==================================");
+		LOGGER.info("ID            NAME         CREATED");
+		LOGGER.info("==================================");
 
 		final List<Person> people = service.findPeople();
 
 		if (people != null && !people.isEmpty()) {
 			for (Person person : people) {
-				System.out.print(String.format("%d, %s, ", person.getId(), person.getName()));
-				System.out.println(DATE_FORMAT.format(person.getCreatedDateTime()));//NOSONAR
+				LOGGER.info(String.format("%d, %s, ", person.getId(), person.getName()));
+				LOGGER.info(DATE_FORMAT.format(person.getCreatedDateTime()));//NOSONAR
 			}
 		}
 		else {
-			System.out.println(
+			LOGGER.info(
 					String.format("No Person record found."));
 		}
 
-		System.out.println("==================================\n\n");
+		LOGGER.info("==================================\n\n");
 	}
 
 }
