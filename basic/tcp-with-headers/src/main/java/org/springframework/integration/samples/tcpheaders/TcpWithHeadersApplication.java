@@ -10,6 +10,7 @@
 
 package org.springframework.integration.samples.tcpheaders;
 
+import java.io.IOException;
 import java.util.Scanner;
 
 import org.apache.commons.logging.Log;
@@ -42,14 +43,14 @@ public class TcpWithHeadersApplication {
 
 	// Client side
 
-	public interface TcpExchanger {
+	interface TcpExchanger {
 
 		String exchange(String data, @Header("type") String type);
 
 	}
 
 	@Bean
-	public IntegrationFlow client(@Value("${tcp.port:1234}") int port) {
+	IntegrationFlow client(@Value("${tcp.port:1234}") int port) {
 		return IntegrationFlow.from(TcpExchanger.class)
 				.handle(Tcp.outboundGateway(Tcp.netClient("localhost", port)
 						.deserializer(jsonMapping())
@@ -61,7 +62,7 @@ public class TcpWithHeadersApplication {
 	// Server side
 
 	@Bean
-	public IntegrationFlow server(@Value("${tcp.port:1234}") int port) {
+	IntegrationFlow server(@Value("${tcp.port:1234}") int port) {
 		return IntegrationFlow.from(Tcp.inboundGateway(Tcp.netServer(port)
 						.deserializer(jsonMapping())
 						.serializer(jsonMapping())
@@ -78,14 +79,14 @@ public class TcpWithHeadersApplication {
 	// Common
 
 	@Bean
-	public MessageConvertingTcpMessageMapper mapper() {
+	MessageConvertingTcpMessageMapper mapper() {
 		MapMessageConverter converter = new MapMessageConverter();
 		converter.setHeaderNames("type");
 		return new MessageConvertingTcpMessageMapper(converter);
 	}
 
 	@Bean
-	public MapJsonSerializer jsonMapping() {
+	MapJsonSerializer jsonMapping() {
 		return new MapJsonSerializer();
 	}
 
@@ -93,7 +94,7 @@ public class TcpWithHeadersApplication {
 
 	@Bean
 	@DependsOn("client")
-	public ApplicationRunner runner(TcpExchanger exchanger,
+	ApplicationRunner runner(TcpExchanger exchanger,
 			ConfigurableApplicationContext context) {
 
 		return args -> {
@@ -101,23 +102,36 @@ public class TcpWithHeadersApplication {
 					Enter some text; if it starts with a lower case character,
 					it will be upper-cased by the server; otherwise it will be lower-cased;
 					enter 'quit' to end""");
-			processInput(exchanger, context);
+			processInputAndCloseContext(exchanger, context);
 		};
 	}
 
-	private void processInput(TcpExchanger exchanger, ConfigurableApplicationContext context) {
+	private void processInputAndCloseContext(TcpExchanger exchanger, ConfigurableApplicationContext context) {
 		try (Scanner scanner = new Scanner(System.in)) {
-			String request = getNextRequest(scanner);
-			while (!"quit".equalsIgnoreCase(request)) {
-				if (StringUtils.hasText(request)) {
-					String result = exchanger.exchange(request,
-							Character.isLowerCase(request.charAt(0)) ? "upper" : "lower");
-					LOGGER.info(result);
+			processInput(exchanger, scanner);
+		}
+		finally {
+			if (context != null) {
+				try {
+					context.close();
 				}
-				request = getNextRequest(scanner);
+				catch (Exception e) {
+					LOGGER.error("Error closing application context", e);
+				}
 			}
 		}
-		context.close();
+	}
+
+	private void processInput(TcpExchanger exchanger, Scanner scanner) {
+		String request = getNextRequest(scanner);
+		while (!"quit".equalsIgnoreCase(request)) {
+			if (StringUtils.hasText(request)) {
+				String result = exchanger.exchange(request,
+						Character.isLowerCase(request.charAt(0)) ? "upper" : "lower");
+				LOGGER.info("Result from server: " + result);
+			}
+			request = getNextRequest(scanner);
+		}
 	}
 
 	private String getNextRequest(Scanner scanner) {

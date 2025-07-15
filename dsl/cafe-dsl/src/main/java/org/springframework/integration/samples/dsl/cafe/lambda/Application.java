@@ -56,7 +56,11 @@ public class Application {
 		}
 
 		LOGGER.info("Hit 'Enter' to terminate");
-		System.in.read();
+		try {
+			System.in.read();
+		} catch (IOException e) {
+			LOGGER.error("Error reading input", e);
+		}
 		ctx.close();
 	}
 
@@ -93,7 +97,11 @@ public class Application {
 																" prepared cold drink #" +
 																this.coldDrinkCounter.incrementAndGet() +
 																" for order #" + p.getOrderNumber() + ": " + p)
-												.handle(m -> LOGGER.info(m.getPayload()))))
+												.handle(m -> {
+													if (LOGGER.isInfoEnabled()) {
+														LOGGER.info(m.getPayload().toString());
+													}
+												})))
 								.bridge())
 						.subFlowMapping(false, sf -> sf
 								.channel(c -> c.queue(10))
@@ -105,7 +113,11 @@ public class Application {
 																" prepared hot drink #" +
 																this.hotDrinkCounter.incrementAndGet() +
 																" for order #" + p.getOrderNumber() + ": " + p)
-												.handle(m -> LOGGER.info(m.getPayload()))))
+												.handle(m -> {
+													if (LOGGER.isInfoEnabled()) {
+														LOGGER.info(m.getPayload().toString());
+													}
+												})))
 								.bridge()))
 				.<OrderItem, Drink>transform(orderItem ->
 						new Drink(orderItem.getOrderNumber(),

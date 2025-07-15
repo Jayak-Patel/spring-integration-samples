@@ -1,138 +1,140 @@
 /*
- * Copyright 2010 the original author or authors
+ * Copyright 2019 the original author or authors.
  *
- *     Licensed under the Apache License, Version 2.0 (the "License");
- *     you may not use this file except in compliance with the License.
- *     You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *         https://www.apache.org/licenses/LICENSE-2.0
- *
- *     Unless required by applicable law or agreed to in writing, software
- *     distributed under the License is distributed on an "AS IS" BASIS,
- *     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *     See the License for the specific language governing permissions and
- *     limitations under the License.
+ *      https://www.apache.org/licenses/LICENSE-2.0
  */
-package org.springframework.integration.samples.testing.externalgateway;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+package org.springframework.integration.samples.tcpheaders;
 
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Result;
-import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMResult;
-import javax.xml.transform.dom.DOMSource;
+import java.util.Scanner;
 
-import org.w3c.dom.Document;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.oxm.Marshaller;
-import org.springframework.oxm.MarshallingFailureException;
-import org.springframework.oxm.Unmarshaller;
-import org.springframework.oxm.XmlMappingException;
-import org.springframework.xml.transform.StringResult;
-import org.springframework.xml.transform.StringSource;
-import org.springframework.xml.xpath.XPathExpressionFactory;
-/**
- *
- * @author Oleg Zhurakousky
- * @author Mark Fisher
- * @since SpringOne2GX - 2010, Chicago
- */
-public class WeatherMarshaller implements Marshaller, Unmarshaller, InitializingBean {
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.integration.dsl.IntegrationFlow;
+import org.springframework.integration.handler.LoggingHandler.Level;
+import org.springframework.integration.ip.dsl.Tcp;
+import org.springframework.integration.ip.tcp.connection.MessageConvertingTcpMessageMapper;
+import org.springframework.integration.ip.tcp.serializer.MapJsonSerializer;
+import org.springframework.integration.support.converter.MapMessageConverter;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.util.StringUtils;
 
-	private static final TransformerFactory transformerFactory = TransformerFactory.newInstance();
+@SpringBootApplication
+public class TcpWithHeadersApplication {
 
-	private final Map<String, String> namespacePrefixes = new HashMap<String, String>();
+	private static final Log LOGGER = LogFactory.getLog(TcpWithHeadersApplication.class);
 
-	private String xPathPrefix;
+	public static void main(String[] args) {
+		SpringApplication.run(TcpWithHeadersApplication.class, args);
+	}
 
-	@Value("${weather.service.namespace:https://ws.cdyne.com/WeatherWS/}")
-	private String namespace;
+	// Client side
 
-    @Value("${weather.service.getCityWeatherByZIP.uri:<uri>}")
-    private String getCityWeatherByZIPUri;
+	interface TcpExchanger {
 
-	public Object unmarshal(Source source) throws IOException, XmlMappingException {
+		String exchange(String data, @Header("type") String type);
 
-		//this.writeXml(((DOMSource)source).getNode().getOwnerDocument());
-		DOMResult result = null;
-		try {
-			Transformer transformer = transformerFactory.newTransformer();
-			result = new DOMResult();
-			transformer.transform(source, result);
-		} catch (Exception e) {
-			throw new MarshallingFailureException("Failed to unmarshal SOAP Response", e);
+	}
+
+	@Bean
+	IntegrationFlow client(@Value("${tcp.port:1234}") int port) {
+		return IntegrationFlow.from(TcpExchanger.class)
+				.handle(Tcp.outboundGateway(Tcp.netClient("localhost", port)
+						.deserializer(jsonMapping())
+						.serializer(jsonMapping())
+						.mapper(mapper())))
+				.get();
+	}
+
+	// Server side
+
+	@Bean
+	IntegrationFlow server(@Value("${tcp.port:1234}") int port) {
+		return IntegrationFlow.from(Tcp.inboundGateway(Tcp.netServer(port)
+						.deserializer(jsonMapping())
+						.serializer(jsonMapping())
+						.mapper(mapper())))
+				.log(Level.INFO, "exampleLogger", "'Received type header:' + headers['type']")
+				.route("headers['type']", r -> r
+						.subFlowMapping("upper",
+								subFlow -> subFlow.transform(String.class, String::toUpperCase))
+						.subFlowMapping("lower",
+								subFlow -> subFlow.transform(String.class, String::toLowerCase)))
+				.get();
+	}
+
+	// Common
+
+	@Bean
+	MessageConvertingTcpMessageMapper mapper() {
+		MapMessageConverter converter = new MapMessageConverter();
+		converter.setHeaderNames("type");
+		return new MessageConvertingTcpMessageMapper(converter);
+	}
+
+	@Bean
+	MapJsonSerializer jsonMapping() {
+		return new MapJsonSerializer();
+	}
+
+	// Console
+
+	@Bean
+	@DependsOn("client")
+	ApplicationRunner runner(TcpExchanger exchanger,
+			ConfigurableApplicationContext context) {
+
+		return args -> {
+			LOGGER.info("""
+					Enter some text; if it starts with a lower case character,
+					it will be upper-cased by the server; otherwise it will be lower-cased;
+					enter 'quit' to end""");
+			processInputAndCloseContext(exchanger, context);
+		};
+	}
+
+	private void processInputAndCloseContext(TcpExchanger exchanger, ConfigurableApplicationContext context) {
+		try (Scanner scanner = new Scanner(System.in)) {
+			processInput(exchanger, scanner);
 		}
-		Weather weather = new Weather();
-		String expression = xPathPrefix + "p:City";
-		String city = XPathExpressionFactory.createXPathExpression(expression, namespacePrefixes).evaluateAsString(result.getNode());
-		weather.setCity(city);
-		expression = xPathPrefix + "p:State";
-		String state = XPathExpressionFactory.createXPathExpression(expression, namespacePrefixes).evaluateAsString(result.getNode());
-		weather.setState(state);
-		expression = xPathPrefix + "p:Temperature";
-		String temperature = XPathExpressionFactory.createXPathExpression(expression, namespacePrefixes).evaluateAsString(result.getNode());
-		weather.setTemperature(temperature);
-		expression = xPathPrefix + "p:Description";
-		String description = XPathExpressionFactory.createXPathExpression(expression, namespacePrefixes).evaluateAsString(result.getNode());
-		weather.setDescription(description);
-		return weather;
-	}
-
-	public boolean supports(Class<?> clazz) {
-		System.out.println("Suppors");
-		return false;
-	}
-
-	public void marshal(Object zip, Result result) throws IOException,
-			XmlMappingException {
-		String xmlString = "<weat:GetCityWeatherByZIP xmlns:weat=\"" + namespace + "\">" +
-							"	<weat:ZIP>" + zip + "</weat:ZIP>" +
-							"</weat:GetCityWeatherByZIP>";
-		try {
-			Transformer transformer = transformerFactory.newTransformer();
-			transformer.transform(new StringSource(xmlString), result);
-		} catch (Exception e) {
-			e.printStackTrace();
+		finally {
+			if (context != null) {
+				context.close();
+			}
 		}
 	}
 
-	public static final void writeXml(Document document) {
-		Transformer transformer = createIndentingTransformer();
-
-		transformer.setOutputProperty(OutputKeys.METHOD, "xml");
-
-		try {
-			StringResult streamResult = new StringResult();
-			transformer.transform(new DOMSource(document), streamResult);
-		} catch (Exception ex) {
-			throw new IllegalStateException(ex);
+	private void processInput(TcpExchanger exchanger, Scanner scanner) {
+		String request = getNextRequest(scanner);
+		while (!"quit".equalsIgnoreCase(request)) {
+			if (StringUtils.hasText(request)) {
+				String result = exchanger.exchange(request,
+						Character.isLowerCase(request.charAt(0)) ? "upper" : "lower");
+				LOGGER.info("Result from server: " + result);
+			}
+			request = getNextRequest(scanner);
 		}
 	}
-	public static final Transformer createIndentingTransformer() {
-		Transformer xformer;
-		try {
-			xformer = transformerFactory.newTransformer();
-			xformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-			xformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-			xformer.setOutputProperty(OutputKeys.INDENT, "yes");
-			xformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", String.valueOf(2));
-		} catch (Exception ex) {
-			throw new IllegalStateException(ex);
+
+	private String getNextRequest(Scanner scanner) {
+		if (scanner.hasNextLine()) {
+			return scanner.nextLine();
 		}
-		xformer.setOutputProperty(OutputKeys.INDENT, "yes");
-		xformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-		return xformer;
+		else {
+			return "quit";
+		}
 	}
 
-	public void afterPropertiesSet() throws Exception {
-		namespacePrefixes.put("p", namespace);
-		this.xPathPrefix = "/p:GetCityWeatherByZIPResponse/p:GetCityWeatherByZIPResult/";
-	}
 }

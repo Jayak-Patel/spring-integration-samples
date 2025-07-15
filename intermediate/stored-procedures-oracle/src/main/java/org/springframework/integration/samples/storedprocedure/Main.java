@@ -1,7 +1,7 @@
 /*
  * Copyright 2002-2017 the original author or authors.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 20 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -9,15 +9,13 @@
  */
 package org.springframework.integration.samples.storedprocedure;
 
-import java.util.List;
 import java.util.Scanner;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import org.springframework.context.support.GenericXmlApplicationContext;
-import org.springframework.integration.model.CoffeeBeverage;
-import org.springframework.integration.service.CoffeeService;
+import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.integration.service.StringConversionService;
 
 
@@ -42,14 +40,11 @@ public final class Main {
 	 */
 	public static void main(final String... args) {
 
-		final Scanner scanner = new Scanner(System.in);
-
 		LOGGER.info("""
 
 				=========================================================
 				                                                         
-				          Welcome to Spring Integration's                
-				     Stored Procedure/Function Sample for Oracle         
+				          Welcome to Spring Integration!                 
 				                                                         
 				    For more information please visit:                   
 				    https://www.springsource.org/spring-integration       
@@ -57,58 +52,25 @@ public final class Main {
 				=========================================================
 				""");
 
-		while (true) {
+		final AbstractApplicationContext context =
+				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/*-context.xml");
 
-			LOGGER.info("Please enter a choice and press <enter>: ");
-			LOGGER.info("\t1. Execute Sample 1 (Capitalize String)");
-			LOGGER.info("\t2. Execute Sample 2 (Coffee Service)");
-			LOGGER.info("\tq. Quit the application");
-
-			final String input = scanner.nextLine();
-
-			if("1".equals(input.trim())) {
-				executeSample1();
-				continue;
-			} else if("2".equals(input.trim())) {
-				executeSample2();
-				continue;
-			} else if("q".equals(input.trim())) {
-				break;
-			} else {
-				LOGGER.info("Invalid choice\n\n");
-				LOGGER.info("Enter you choice: ");
-			}
-		}
-
-		LOGGER.info("Exiting application.");
-		scanner.close();
-
-	}
-
-	private static void executeSample1() {
+		context.registerShutdownHook();
 
 		final Scanner scanner = new Scanner(System.in);
 
-		final GenericXmlApplicationContext context = new GenericXmlApplicationContext();
-		context.load("classpath:META-INF/spring/integration/spring-integration-sample1-context.xml");
-		context.registerShutdownHook();
-		context.refresh();
-
 		final StringConversionService service = context.getBean(StringConversionService.class);
 
-		final String message = """
-
+		LOGGER.info("""
 
 				=========================================================
 				                                                         
 				    Please press 'q + Enter' to quit the application.    
 				                                                         
 				=========================================================
+				""");
 
-				 Please enter a string and press <enter>: """
-				;
-
-		LOGGER.info(message);
+		LOGGER.info("Please enter a string and press <enter>: ");
 
 		while (!scanner.hasNext("q")) {
 			String input = scanner.nextLine();
@@ -119,65 +81,16 @@ public final class Main {
 			LOGGER.info("Retrieving Numeric value via Sql Function...");
 			Integer number = service.getNumber();
 
-			LOGGER.info(String.format("Converted '%s' - End Result: '%s_%s'.", input, inputUpperCase, number));
+			LOGGER.info("""
+					Converted '%s' - End Result: '%s_%s'.
+					""".formatted(input, inputUpperCase, number));
 			LOGGER.info("To try again, please enter a string and press <enter>:");
 		}
 
-		scanner.close();
-		context.close();
-		LOGGER.info("Back to main menu.");
-
-	}
-
-	private static void executeSample2() {
-
-		final Scanner scanner = new Scanner(System.in);
-
-		final GenericXmlApplicationContext context = new GenericXmlApplicationContext();
-		context.load("classpath:META-INF/spring/integration/spring-integration-sample2-context.xml");
-		context.registerShutdownHook();
-		context.refresh();
-
-		final CoffeeService service = context.getBean(CoffeeService.class);
-
-		final String message = """
-
-
-			* Please enter 'list' and press <enter> to get a list of coffees.
-			* Enter a coffee id, e.g. '1' and press <enter> to get a description.
-			* Please press 'q + Enter' to quit the application.
-
-			"""
-				;
-
-		LOGGER.info(message);
-
-		while (!scanner.hasNext("q")) {
-
-			String input = scanner.nextLine();
-
-			if ("list".equalsIgnoreCase(input)) {
-				List<CoffeeBeverage> coffeeBeverages = service.findAllCoffeeBeverages();
-
-				for (CoffeeBeverage coffeeBeverage : coffeeBeverages) {
-					LOGGER.info(String.format("%s - %s", coffeeBeverage.getId(),
-																coffeeBeverage.getName()));
-				}
-
-			} else {
-				LOGGER.info("Retrieving coffee information...");
-				String coffeeDescription = service.findCoffeeBeverage(Integer.valueOf(input));
-
-				LOGGER.info(String.format("Searched for '%s' - Found: '%s'.", input, coffeeDescription));
-				LOGGER.info("To try again, please enter another coffee beverage and press <enter>:\n\n");
-			}
-
-		}
+		LOGGER.info("Exiting application...bye.");
 
 		scanner.close();
 		context.close();
-
-		LOGGER.info("Back to main menu.");
 	}
 
 }

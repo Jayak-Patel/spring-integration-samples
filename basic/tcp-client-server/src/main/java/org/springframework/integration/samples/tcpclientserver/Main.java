@@ -41,6 +41,7 @@ import org.springframework.integration.ip.util.TestingUtilities;
  * </ul>
  *
  * @author Gunnar Hillert
+ * @author Gary Russell
  * @author Artem Bilan
  *
  */
@@ -105,7 +106,7 @@ public final class Main {
 			}
 			else {
 				final String result = gateway.send(input);
-				LOGGER.info(result);
+				LOGGER.info("Result from echo service: " + result);
 			}
 		}
 

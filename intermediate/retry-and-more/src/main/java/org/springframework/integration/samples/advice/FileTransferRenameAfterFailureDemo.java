@@ -58,19 +58,18 @@ public class FileTransferRenameAfterFailureDemo {
 
 				=========================================================
 				                                                          
-				    This is the Expression Advice Sample -                
+				    This is the Expression Advice Sample -
 				                                                          
-				    Press 'Enter' to terminate.                           
+				    Please press 'Enter' to terminate.
 				                                                          
-				    Place a file in """ + System.getProperty("java.io.tmpdir") + """
-				/adviceDemo ending   
-				    with .txt                                             
-				    The demo simulates a file transfer failure followed   
-				    by the Advice renaming the file; the result of the    
-				    rename is logged.                                     
+				    Place a file in %s/adviceDemo ending
+				    with .txt
+				    The demo simulates a file transfer failure followed
+				    by the Advice renaming the file; the result of the
+				    rename is logged.
 				                                                          
 				=========================================================
-				""");
+				""".formatted(System.getProperty("java.io.tmpdir")));
 
 		System.in.read();
 		context.close();

@@ -59,15 +59,15 @@ public final class SamplePubConfirmsReturns {
 				                                                          
 				    This is the AMQP Sample with confirms/returns -       
 				                                                          
-				    Please enter some text and press return. The entered  
+				    Please enter some text and press return. The entered
 				    Message will be sent to the configured RabbitMQ Queue,
-				    then again immediately retrieved from the Message     
-				    Broker and ultimately printed to the command line.    
-				    Send 'fail' to demonstrate a return because the       
-				    message couldn't be routed to a queue.                
-				    Send 'nack' to demonstrate a NACK because the         
-				    exchange doesn't exist, causing the channel to be     
-				    closed in error by the broker.                        
+				    then again immediately retrieved from the Message
+				    Broker and ultimately printed to the command line.
+				    Send 'fail' to demonstrate a return because the
+				    message couldn't be routed to a queue.
+				    Send 'nack' to demonstrate a NACK because the
+				    exchange doesn't exist, causing the channel to be
+				    closed in error by the broker.
 				                                                          
 				=========================================================
 				""");

@@ -6,15 +6,13 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package org.springframework.integration.samples.testcontainersrabbitmq;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.UUID;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -32,10 +30,6 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.support.MessageBuilder;
 
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 @SpringBootTest
 @SpringIntegrationTest
 @Import({ Receiver.class, IntegrationConfigTests.Config.class })
@@ -47,7 +41,7 @@ class IntegrationConfigTests {
 	private MessageChannel requestInput;
 
 	@Test
-	public void test() {
+	void test() {
 		MessagingTemplate messagingTemplate = new MessagingTemplate();
 		UUID requestId = UUID.randomUUID();
 		Request fakeRequest = new Request(requestId, 1);

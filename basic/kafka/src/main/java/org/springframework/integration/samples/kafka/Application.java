@@ -26,6 +26,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.KafkaMessageListenerContainer;
+import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 
@@ -112,7 +113,9 @@ public class Application {
 	@ServiceActivator(inputChannel = "fromKafka")
 	public MessageHandler handler() {
 		return message -> {
-			LOGGER.info(message.getPayload().toString());
+			if (LOGGER.isInfoEnabled()) {
+				LOGGER.info(message.getPayload().toString());
+			}
 		};
 	}
 
@@ -121,7 +124,8 @@ public class Application {
 		return args -> {
 			int n = 0;
 			while (n++ < 10) {
-				toKafka.send(org.springframework.messaging.support.MessageBuilder.withPayload("foo " + n).build());
+				Message<?> msg = org.springframework.messaging.support.MessageBuilder.withPayload("foo " + n).build();
+				toKafka.send(msg);
 			}
 		};
 	}

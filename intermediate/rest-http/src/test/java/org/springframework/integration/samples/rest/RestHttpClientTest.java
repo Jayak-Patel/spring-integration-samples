@@ -1,149 +1,258 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 20 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
-package org.springframework.integration.samples.rest;
+package org.springframework.integration.samples.mailattachments.support;
 
 import java.io.ByteArrayOutputStream;
-import java.io.StringWriter;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 
-import javax.xml.transform.stream.StreamResult;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.ClientHttpRequest;
-import org.springframework.integration.samples.rest.domain.EmployeeList;
-import org.springframework.oxm.jaxb.Jaxb2Marshaller;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import org.springframework.web.client.HttpMessageConverterExtractor;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.util.Assert;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import jakarta.mail.BodyPart;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.Part;
+import jakarta.mail.internet.ContentType;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.ParseException;
 
 /**
- * RestHttpClientTest.java: Functional Test to test the REST HTTP Path usage. This test requires
- * rest-http application running in HTTP environment.
+ * Utility Class for parsing mail messages.
  *
- * @author Vigil Bose
+ * @author Gunnar Hillert
  * @author Gary Russell
  * @author Artem Bilan
+ *
+ * @since 2.2
+ *
  */
-@SpringJUnitConfig(locations = "classpath*:META-INF/spring/integration/http-outbound-config.xml")
-class RestHttpClientTest {
+public final class EmailParserUtils {
 
-	@Autowired
-	private RestTemplate restTemplate;
+	private static final Log LOGGER = LogFactory.getLog(EmailParserUtils.class);
 
-	private HttpMessageConverterExtractor<EmployeeList> responseExtractor;
-
-	private static final Log logger = LogFactory.getLog(RestHttpClientTest.class);
-
-	@Autowired
-	private Jaxb2Marshaller marshaller;
-
-	@Autowired
-	private ObjectMapper jaxbJacksonObjectMapper;
-
-	@BeforeEach
-	void setUp() {
-		responseExtractor = new HttpMessageConverterExtractor<>(EmployeeList.class, restTemplate
-				.getMessageConverters());
-
-		Map<String, Object> properties = new HashMap<>();
-		properties.put(jakarta.xml.bind.Marshaller.JAXB_ENCODING, "UTF-8");
-		properties.put(jakarta.xml.bind.Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-		marshaller.setMarshallerProperties(properties);
+	/** Prevent instantiation. */
+	private EmailParserUtils() {
+		throw new AssertionError();
 	}
 
-	@Test
-	void testGetEmployeeAsXml() {
-		Map<String, Object> employeeSearchMap = getEmployeeSearchMap("0");
+	/**
+	 * Parses a mail message. The respective message can either be the root message
+	 * or another message that is attached to another message.
+	 *
+	 * If the mail message is an instance of {@link String}, then a {@link EmailFragment}
+	 * is being created using the email message's subject line as the file name,
+	 * which will contain the mail message's content.
+	 *
+	 * If the mail message is an instance of {@link Multipart} then we delegate
+	 * to {@link #handleMultipart(File, Multipart, List)}.
+	 *
+	 * @param directory The directory for storing the message. If null this is the root message.
+	 * @param mailMessage The mailMessage to be parsed. Must not be null.
+	 * @param emailFragments Must not be null.
+	 */
+	public static void handleMessage(final File directory,
+			final jakarta.mail.Message mailMessage,
+			final List<EmailFragment> emailFragments) {
 
-		final String fullUrl = "http://localhost:8080/rest-http/services/employee/{id}/search";
+		Assert.notNull(mailMessage, "The mail message to be parsed must not be null.");
+		Assert.notNull(emailFragments, "The collection of email fragments must not be null.");
 
-		EmployeeList employeeList = restTemplate.execute(fullUrl, HttpMethod.GET,
-				request -> {
-					HttpHeaders headers = getHttpHeadersWithUserCredentials(request);
-					headers.add("Accept", "application/xml");
-				}, responseExtractor, employeeSearchMap);
+		try {
+			Object content = mailMessage.getContent();
+			String subject = mailMessage.getSubject();
+			File directoryToUse = (directory == null) ? new File(subject) : new File(directory, subject);
 
-		logger.info("The employee list size :" + employeeList.getEmployee().size());
-
-		StringWriter sw = new StringWriter();
-		StreamResult sr = new StreamResult(sw);
-
-		marshaller.marshal(employeeList, sr);
-		logger.info(sr.getWriter().toString());
-		assertThat(employeeList.getEmployee()).hasSizeGreaterThan(0);
+			processContent(directoryToUse, content, mailMessage, emailFragments);
+		}
+		catch (MessagingException e) {
+			LOGGER.error("Error while retrieving the email contents.");
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Exception details:", e);
+			}
+			throw new IllegalStateException("Error while retrieving the email contents.", e);
+		}
 	}
 
-	private Map<String, Object> getEmployeeSearchMap(String id) {
-		Map<String, Object> employeeSearchMap = new HashMap<>();
-		employeeSearchMap.put("id", id);
-		return employeeSearchMap;
+	private static void processContent(File directoryToUse, Object content, jakarta.mail.Message mailMessage, List<EmailFragment> emailFragments) throws MessagingException {
+		try {
+			if (content instanceof String) {
+				emailFragments.add(new EmailFragment(new File(mailMessage.getSubject()), "message.txt", content));
+			}
+			else if (content instanceof Multipart multipart) {
+				handleMultipart(directoryToUse, (Multipart) content, emailFragments);
+			}
+			else {
+				throw new IllegalStateException("This content type is not handled: " + content.getClass().getSimpleName());
+			}
+		}
+		catch (IOException e) {
+			LOGGER.error("Error while processing content.");
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Exception details:", e);
+			}
+			throw new IllegalStateException("Error while retrieving the email contents.", e);
+		}
 	}
 
-	@Test
-	void testGetEmployeeAsJson() throws Exception {
-		Map<String, Object> employeeSearchMap = getEmployeeSearchMap("0");
+	/**
+	 * Parses any {@link Multipart} instances that contain text or Html attachments,
+	 * {@link InputStream} instances, additional instances of {@link Multipart}
+	 * or other attached instances of {@link jakarta.mail.Message}.
+	 *
+	 * Will create the respective {@link EmailFragment}s representing those attachments.
+	 *
+	 * Instances of {@link jakarta.mail.Message} are delegated to
+	 * {@link #handleMessage(File, jakarta.mail.Message, List)}. Further instances
+	 * of {@link Multipart} are delegated to
+	 * {@link #handleMultipart(File, Multipart, List)}.
+	 *
+	 * @param directory Must not be null
+	 * @param multipart Must not be null
+	 * @param emailFragments Must not be null
+	 */
+	public static void handleMultipart(File directory, Multipart multipart, List<EmailFragment> emailFragments) {
 
-		final String fullUrl = "http://localhost:8080/rest-http/services/employee/{id}/search?format" +
-				"=json";
-		HttpHeaders headers = getHttpHeadersWithUserCredentials(new HttpHeaders());
-		headers.add("Accept", "application/json");
-		HttpEntity<Object> request = new HttpEntity<>(headers);
+		Assert.notNull(directory, "The directory must not be null.");
+		Assert.notNull(multipart, "The multipart object to be parsed must not be null.");
+		Assert.notNull(emailFragments, "The collection of email fragments must not be null.");
 
-		ResponseEntity<?> httpResponse = restTemplate
-				.exchange(fullUrl, HttpMethod.GET, request, EmployeeList.class, employeeSearchMap);
-		logger.info("Return Status :" + httpResponse.getHeaders().get("X-Return-Status"));
-		logger.info("Return Status Message :" + httpResponse.getHeaders().get("X-Return-Status-Msg"));
-		assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		jaxbJacksonObjectMapper.writeValue(out, httpResponse.getBody());
-		logger.info(out.toString());
+		try {
+			int count = multipart.getCount();
+
+			if (LOGGER.isInfoEnabled()) {
+				LOGGER.info(String.format("Number of enclosed BodyPart objects: %s.", count));
+			}
+
+			for (int i = 0; i < count; i++) {
+				BodyPart bp = multipart.getBodyPart(i);
+				processBodyPart(directory, bp, emailFragments, i);
+			}
+
+		}
+		catch (MessagingException e) {
+			LOGGER.error("Error while retrieving the number of enclosed BodyPart objects: " + e.getMessage());
+			throw new IllegalStateException("Error while retrieving the number of enclosed BodyPart objects.", e);
+		}
 	}
 
-	private HttpHeaders getHttpHeadersWithUserCredentials(ClientHttpRequest request) {
-		return (getHttpHeadersWithUserCredentials(request.getHeaders()));
+	private static void processBodyPart(File directory, BodyPart bp, List<EmailFragment> emailFragments, int i) throws MessagingException {
+		try {
+			String contentType = bp.getContentType();
+			String filename = bp.getFileName();
+			String disposition = bp.getDisposition();
+
+			if (filename == null && bp instanceof MimeBodyPart mimeBodyPart) {
+				filename = mimeBodyPart.getContentID();
+			}
+
+			if (LOGGER.isInfoEnabled()) {
+				LOGGER.info("BodyPart - Content Type: {}, filename: {}, disposition: {}",
+						contentType, filename, disposition);
+			}
+
+			if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+				LOGGER.info("Handling attachment '{}', type: '{}'", filename, contentType);
+			}
+
+			Object content = bp.getContent();
+
+			handleContent(directory, content, filename, disposition, contentType, emailFragments, i);
+
+		}
+		catch (IOException e) {
+			LOGGER.error("Error while processing body part.");
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Exception details:", e);
+			}
+			throw new IllegalStateException("Error while retrieving the email contents.", e);
+		}
 	}
 
-	private HttpHeaders getHttpHeadersWithUserCredentials(HttpHeaders headers) {
-
-		String username = "SPRING";
-		String password = "spring";
-
-		String combinedUsernamePassword = username + ":" + password;
-		byte[] base64Token = Base64.getEncoder().encode(combinedUsernamePassword.getBytes());
-		String base64EncodedToken = new String(base64Token);
-		//adding Authorization header for HTTP Basic authentication
-		headers.add("Authorization", "Basic " + base64EncodedToken);
-
-		return headers;
+	private static void handleContent(File directory, Object content, String filename, String disposition, String contentType, List<EmailFragment> emailFragments, int i) throws MessagingException {
+		try {
+			if (content instanceof String) {
+				processStringContent(directory, content, filename, disposition, contentType, emailFragments, i);
+			}
+			else if (content instanceof InputStream) {
+				processInputStreamContent(directory, (InputStream) content, filename, emailFragments);
+			}
+			else if (content instanceof jakarta.mail.Message) {
+				handleMessage(directory, (jakarta.mail.Message) content, emailFragments);
+			}
+			else if (content instanceof Multipart) {
+				handleMultipart(directory, (Multipart) content, emailFragments);
+			}
+			else {
+				throw new IllegalStateException("Content type not handled: " + content.getClass().getSimpleName());
+			}
+		}
+		catch (IOException e) {
+			LOGGER.error("Error while handling content.");
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Exception details:", e);
+			}
+			throw new IllegalStateException("Error while retrieving the email contents.", e);
+		}
 	}
 
+	private static void processStringContent(File directory, Object content, String filename, String disposition, String contentType, List<EmailFragment> emailFragments, int i) throws ParseException {
+		if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+			emailFragments.add(new EmailFragment(directory, i + "-" + filename, content));
+			LOGGER.info("Handling attachment '{}', type: '{}'", filename, contentType);
+		}
+		else {
+			String textFilename = determineTextFilename(contentType);
+			// Do not log the content, as it might contain sensitive information.
+			// Instead, log a message indicating that the content is being skipped for security reasons.
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Skipping logging of content for file '{}' due to potential security concerns.", textFilename);
+			}
+
+			emailFragments.add(new EmailFragment(directory, textFilename, (Object) content));
+		}
+	}
+
+	private static String determineTextFilename(String contentType) throws ParseException {
+		ContentType ct = new ContentType(contentType);
+		String baseType = ct.getBaseType();
+		if ("text/plain".equalsIgnoreCase(baseType)) {
+			return "message.txt";
+		}
+		else if ("text/html".equalsIgnoreCase(baseType)) {
+			return "message.html";
+		}
+		else {
+			return "message.other";
+		}
+	}
+
+	private static void processInputStreamContent(File directory, InputStream contentAsInputStream, String filename, List<EmailFragment> emailFragments) {
+		try {
+			ByteArrayOutputStream bis = new ByteArrayOutputStream();
+
+			IOUtils.copy(contentAsInputStream, bis);
+
+			emailFragments.add(new EmailFragment(directory, filename, bis.toByteArray()));
+		} catch (IOException e) {
+			LOGGER.error("Error while processing input stream content.");
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Exception details:", e);
+			}
+			throw new IllegalStateException("Error while retrieving the email contents.", e);
+		}
+	}
 }

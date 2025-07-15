@@ -63,13 +63,15 @@ public final class Main {
 
 		final Scanner scanner = new Scanner(System.in);
 
-		System.out.println("Please enter a choice and press <enter>: ");
-		System.out.println("\t1. Submit 2 search queries, 2 results returned.");
-		System.out.println("\t2. Submit 2 search queries, 1 search query takes too long, 1 result returned.");
-		System.out.println("\t3. Submit 2 search queries, 2 search queries take too long, 0 results returned.");
+		LOGGER.info("""
+				Please enter a choice and press <enter>: 
+					1. Submit 2 search queries, 2 results returned.
+					2. Submit 2 search queries, 1 search query takes too long, 1 result returned.
+					3. Submit 2 search queries, 2 search queries take too long, 0 results returned.
 
-		System.out.println("\tq. Quit the application");
-		System.out.print("Enter your choice: ");
+					q. Quit the application
+				Enter your choice: 
+				""");
 
 		while (true) {
 			final String input = scanner.nextLine();
@@ -78,26 +80,26 @@ public final class Main {
 				searchA.setExecutionTime(1000L);
 				searchB.setExecutionTime(1000L);
 				final CompositeResult result = searchRequestor.search(TestUtils.getCompositeCriteria());
-				System.out.println("Number of Search Results: " + result.getResults().size());
+				LOGGER.info("Number of Search Results: " + result.getResults().size());
 			} else if("2".equals(input.trim())) {
 				searchA.setExecutionTime(6000L);
 				searchB.setExecutionTime(1000L);
 				final CompositeResult result = searchRequestor.search(TestUtils.getCompositeCriteria());
-				System.out.println("Number of Search Results: " + result.getResults().size());
+				LOGGER.info("Number of Search Results: " + result.getResults().size());
 			} else if("3".equals(input.trim())) {
 				searchA.setExecutionTime(6000L);
 				searchB.setExecutionTime(6000L);
 				final CompositeResult result = searchRequestor.search(TestUtils.getCompositeCriteria());
-				System.out.println("Result is null: " + (result == null));
+				LOGGER.info("Result is null: " + (result == null));
 			} else if("q".equals(input.trim())) {
 				break;
 			} else {
-				System.out.println("Invalid choice\n\n");
+				LOGGER.info("Invalid choice\n\n");
 			}
 
 		}
 
-		System.out.println("Exiting application...bye.");
+		LOGGER.info("Exiting application...bye.");
 		scanner.close();
 		context.close();
 

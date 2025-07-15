@@ -1,105 +1,77 @@
 /*
- * Copyright 2014-2017 the original author or authors.
+ * Copyright 2002-2011 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package org.springframework.integration.samples.sftp;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import java.io.File;
+import java.util.List;
 
 import org.apache.sshd.sftp.client.SftpClient;
+import org.junit.jupiter.api.Test;
 
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.integration.file.remote.RemoteFileTemplate;
-import org.springframework.integration.file.remote.SessionCallback;
+import org.springframework.integration.file.remote.session.CachingSessionFactory;
+import org.springframework.integration.file.remote.session.SessionFactory;
 
 /**
- * @author Gary Russell
- * @author Artem Bilan
+ * Demonstrates use of the outbound gateway to use ls, get and rm.
+ * Creates a temporary directory with 2 files; retrieves and removes them.
  *
- * @since 4.1
+ * @author Gary Russell
+ *
+ * @since 2.1
  *
  */
-public class SftpTestUtils {
+class SftpOutboundGatewaySample {
 
-	public static void createTestFiles(RemoteFileTemplate<SftpClient.DirEntry> template, final String... fileNames) {
-		if (template != null) {
-			final ByteArrayInputStream stream = new ByteArrayInputStream("foo".getBytes());
-			template.execute((SessionCallback<SftpClient.DirEntry, Void>) session -> {
-				try {
-					session.mkdir("si.sftp.sample");
-				}
-				catch (Exception e) {
-					assertThat(e.getMessage(), containsString("failed to create"));
-				}
-				for (int i = 0; i < fileNames.length; i++) {
-					stream.reset();
-					session.write(stream, "si.sftp.sample/" + fileNames[i]);
-				}
-				return null;
-			});
+	@Test
+	void testLsGetRm() {
+		ConfigurableApplicationContext ctx = new ClassPathXmlApplicationContext(
+				"classpath:/META-INF/spring/integration/SftpOutboundGatewaySample-context.xml");
+		ToSftpFlowGateway toFtpFlow = ctx.getBean(ToSftpFlowGateway.class);
+		RemoteFileTemplate<SftpClient.DirEntry> template = null;
+		String file1 = "1.ftptest";
+		String file2 = "2.ftptest";
+		File tmpDir = new File(System.getProperty("java.io.tmpdir"));
+
+		try {
+			// remove the previous output files if necessary
+			new File(tmpDir, file1).delete();
+			new File(tmpDir, file2).delete();
+
+			@SuppressWarnings("unchecked")
+			SessionFactory<SftpClient.DirEntry> sessionFactory = ctx.getBean(CachingSessionFactory.class);
+			template = new RemoteFileTemplate<>(sessionFactory);
+			SftpTestUtils.createTestFiles(template, file1, file2);
+
+			// execute the flow (ls, get, rm, aggregate results)
+			List<Boolean> rmResults = toFtpFlow.lsGetAndRmFiles("si.sftp.sample");
+
+
+			//Check everything went as expected, and clean up
+			assertEquals(2, rmResults.size());
+			for (Boolean result : rmResults) {
+				assertTrue(result);
+			}
+
 		}
-	}
-
-	public static void cleanUp(RemoteFileTemplate<SftpClient.DirEntry> template, final String... fileNames) {
-		if (template != null) {
-			template.execute((SessionCallback<SftpClient.DirEntry, Void>) session -> {
-				for (int i = 0; i < fileNames.length; i++) {
-					try {
-						session.remove("si.sftp.sample/" + fileNames[i]);
-					}
-					catch (IOException e) {
-					}
-				}
-
-				// should be empty
-				try {
-					session.rmdir("si.sftp.sample");
-				}
-				catch (IOException e) {
-					//It is ok. May be some files exists.
-				}
-				return null;
-			});
-		}
-	}
-
-	public static boolean fileExists(RemoteFileTemplate<SftpClient.DirEntry> template, final String... fileNames) {
-		if (template != null) {
-			return template.execute(session -> {
-				SftpClient channel = (SftpClient) session.getClientInstance();
-				for (String fileName : fileNames) {
-					try {
-						var stat = channel.stat("si.sftp.sample/" + fileName);
-						if (stat == null) {
-							System.out.println("stat returned null for " + fileName);
-							return false;
-						}
-					}
-					catch (IOException e) {
-						System.out.println("Remote file not present: " + e.getMessage() + ": " + fileName);
-						return false;
-					}
-				}
-				return true;
-			});
-		}
-		else {
-			return false;
+		finally {
+			SftpTestUtils.cleanUp(template, file1, file2);
+			ctx.close();
+			assertTrue("Could note delete retrieved file", new File(tmpDir, file1).delete());
+			assertTrue("Could note delete retrieved file", new File(tmpDir, file2).delete());
 		}
 	}
 

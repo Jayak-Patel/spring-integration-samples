@@ -46,12 +46,12 @@ public class StatelessRetryDemo {
 
 				=========================================================
 				                                                          
-				    This is the Stateless Sample -                        
+				    This is the Stateless Sample -
 				                                                          
-				    Please enter some text and press return.              
-				    'fail 2' will fail twice, then succeed                
-				    'fail 3' will fail and never succeed                  
-				    Demo will terminate in 60 seconds.                    
+				    Please enter some text and press return.
+				    'fail 2' will fail twice, then succeed
+				    'fail 3' will fail and never succeed
+				    Demo will terminate in 60 seconds.
 				                                                          
 				=========================================================
 				""");

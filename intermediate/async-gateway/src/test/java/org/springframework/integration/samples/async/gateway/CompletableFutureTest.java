@@ -6,12 +6,6 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package org.springframework.integration.samples.async.gateway;
@@ -90,7 +84,7 @@ class CompletableFutureTest {
 			});
 		}
 		assertThat(latch.await(60, TimeUnit.SECONDS)).isTrue();
-		assertThat(failures.get()).isZero();
+		assertThat(failures.get().isZero()).isTrue();
 		logger.info("Finished");
 	}
 
@@ -101,18 +95,18 @@ class CompletableFutureTest {
 	static class TestConfig {
 
 		@Bean
-		public MessageChannel gatewayChannel() {
+		MessageChannel gatewayChannel() {
 			return new DirectChannel();
 		}
 
 		@Bean
 		@ServiceActivator(inputChannel = "mathServiceChannel")
-		public MathService mathService() {
+		MathService mathService() {
 			return new MathService();
 		}
 
 		@Bean
-		public AsyncTaskExecutor exec() {
+		AsyncTaskExecutor exec() {
 			SimpleAsyncTaskExecutor simpleAsyncTaskExecutor = new SimpleAsyncTaskExecutor();
 			simpleAsyncTaskExecutor.setThreadNamePrefix("exec-");
 			return simpleAsyncTaskExecutor;
@@ -132,7 +126,7 @@ class CompletableFutureTest {
 	static class Gt100Filter {
 
 		@Filter(inputChannel = "gatewayChannel", outputChannel = "mathServiceChannel")
-		public boolean filter(int i) {
+		boolean filter(int i) {
 			return i > 100;
 		}
 

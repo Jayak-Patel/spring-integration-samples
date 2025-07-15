@@ -7,88 +7,120 @@
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
  */
-package org.springframework.integration.samples.storedprocedure;
+package org.springframework.integration.samples.mongodb.outbound;
 
-import java.util.List;
-import java.util.Scanner;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import org.springframework.context.support.AbstractApplicationContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.model.CoffeeBeverage;
-import org.springframework.integration.service.CoffeeService;
-
+import org.springframework.integration.samples.mongodb.domain.Address;
+import org.springframework.integration.samples.mongodb.domain.Person;
+import org.springframework.integration.samples.mongodb.util.DemoUtils;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.support.GenericMessage;
 /**
- * Starts the Spring Context and will initialize the Spring Integration routes.
- *
- * @author Gunnar Hillert
- * @author Gary Russell
- * @since 2.1
- *
- */
-public final class Main {
+*
+* @author Oleg Zhurakousky
+* @author Gary Russell
+*/
+public class MongoDbOutboundAdapterDemo {
 
-	private static final Log LOGGER = LogFactory.getLog(Main.class);
-
-	private static final String LINE = "\n=========================================================";
-
-	private static final String NEWLINE = "\n                                                         ";
-
-	private Main() {
-	}
+	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbOutboundAdapterDemo.class);
 
 	/**
-	 * Load the Spring Integration Application Context
-	 *
-	 * @param args - command line arguments
+	 * @param args
 	 */
-	public static void main(final String... args) {
+	public static void main(String[] args) throws Exception {
+		try {
+			DemoUtils.prepareMongoFactory(); // will clean up MongoDB
+			new MongoDbOutboundAdapterDemo().runDefaultAdapter();
+		}
+		catch (DemoException e) {
+			LOGGER.error(String.format("An error occurred during the demo: %s", e.getMessage()));
+		}
+	}
 
-		LOGGER.info(LINE + LINE + "\n    Welcome to Spring Integration Coffee Database!       " + NEWLINE
-				+ "\n    For more information please visit:                   "
-				+ "\n    https://www.springsource.org/spring-integration       " + NEWLINE + LINE);
+	public void runDefaultAdapter() throws Exception {
 
-		final AbstractApplicationContext context = new ClassPathXmlApplicationContext(
-				"classpath:META-INF/spring/integration/*-context.xml");
+		try (ClassPathXmlApplicationContext context =
+				new ClassPathXmlApplicationContext("mongodb-out-config.xml", MongoDbOutboundAdapterDemo.class)) {
 
-		context.registerShutdownHook();
+			MessageChannel messageChannel = context.getBean("defaultAdapter", MessageChannel.class);
+			messageChannel.send(new GenericMessage<Person>(this.createPersonA()));
+			messageChannel.send(new GenericMessage<Person>(this.createPersonB()));
+			messageChannel.send(new GenericMessage<Person>(this.createPersonC()));
+		}
+		catch (Exception e) {
+			throw new DemoException("Failed to run default adapter", e);
+		}
+	}
 
-		final Scanner scanner = new Scanner(System.in);
+	public void runAdapterWithConverter() throws Exception {
 
-		final CoffeeService service = context.getBean(CoffeeService.class);
+		try (ClassPathXmlApplicationContext context =
+				new ClassPathXmlApplicationContext("mongodb-out-config.xml", MongoDbOutboundAdapterDemo.class)) {
 
-		LOGGER.info(LINE + NEWLINE + "\n    Please press 'q + Enter' to quit the application.    " + NEWLINE + LINE);
+			MessageChannel messageChannel = context.getBean("adapterWithConverter", MessageChannel.class);
+			messageChannel.send(new GenericMessage<String>("John, Dow, Palo Alto, 3401 Hillview Ave, 94304, CA"));
+		}
+		catch (Exception e) {
+			throw new DemoException("Failed to run adapter with converter", e);
+		}
+	}
 
-		LOGGER.info("Please enter 'list' and press <enter> to get a list of coffees.");
-		LOGGER.info("Enter a coffee id, e.g. '1' and press <enter> to get a description.\n\n");
+	private Person createPersonA(){
+		Address address = new Address();
+		address.setCity("Palo Alto");
+		address.setStreet("3401 Hillview Ave");
+		address.setZip("94304");
+		address.setState("CA");
 
-		while (!scanner.hasNext("q")) {
+		Person person = new Person();
+		person.setFname("John");
+		person.setLname("Doe");
+		person.setAddress(address);
 
-			String input = scanner.nextLine();
+		return person;
+	}
 
-			if ("list".equalsIgnoreCase(input)) {
-				List<CoffeeBeverage> coffeeBeverages = service.findAllCoffeeBeverages();
+	private Person createPersonB(){
+		Address address = new Address();
+		address.setCity("San Francisco");
+		address.setStreet("123 Main st");
+		address.setZip("94115");
+		address.setState("CA");
 
-				for (CoffeeBeverage coffeeBeverage : coffeeBeverages) {
-					LOGGER.info(String.format("%s - %s", coffeeBeverage.getId(), coffeeBeverage.getName()));
-				}
+		Person person = new Person();
+		person.setFname("Josh");
+		person.setLname("Doe");
+		person.setAddress(address);
 
-			}
-			else {
-				LOGGER.info("Retrieving coffee information...");
-				String coffeeDescription = service.findCoffeeBeverage(Integer.valueOf(input));
+		return person;
+	}
 
-				LOGGER.info("Searched for '{}' - Found: '{}'.", input, coffeeDescription);
-				LOGGER.info("To try again, please enter another coffee beverage and press <enter>:\n\n");
-			}
+	private Person createPersonC(){
+		Address address = new Address();
+		address.setCity("Philadelphia");
+		address.setStreet("2323 Market st");
+		address.setZip("19152");
+		address.setState("PA");
 
+		Person person = new Person();
+		person.setFname("Jane");
+		person.setLname("Doe");
+		person.setAddress(address);
+
+		return person;
+	}
+
+	@SuppressWarnings("serial")
+	public static class DemoException extends Exception {
+
+		public DemoException(String message) {
+			super(message);
 		}
 
-		LOGGER.info("Exiting application...bye.");
-		scanner.close();
-		context.close();
-
+		public DemoException(String message, Throwable cause) {
+			super(message, cause);
+		}
 	}
 }

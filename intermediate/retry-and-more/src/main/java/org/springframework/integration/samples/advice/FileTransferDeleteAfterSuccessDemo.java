@@ -62,15 +62,15 @@ public class FileTransferDeleteAfterSuccessDemo {
 
 				=========================================================
 				                                                          
-				    This is the Expression Advice Sample -                
+				    This is the Expression Advice Sample -
 				                                                          
-				    Press 'Enter' to terminate.                           
+				    Please press 'Enter' to terminate.
 				                                                          
-				    Place a file in ${java.io.tmpdir}/adviceDemo ending   
-				    with .txt                                             
-				    The demo simulates a file transfer followed by the    
-				    Advice deleting the file; the result of the deletion  
-				    is logged.                                            
+				    Place a file in ${java.io.tmpdir}/adviceDemo ending
+				    with .txt
+				    The demo simulates a file transfer followed by the
+				    Advice deleting the file; the result of the deletion
+				    is logged.
 				                                                          
 				=========================================================
 				""");

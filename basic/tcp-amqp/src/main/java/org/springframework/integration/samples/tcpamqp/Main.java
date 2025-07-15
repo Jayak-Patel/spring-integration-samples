@@ -5,13 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *      https://www.springsource.org/spring-integration/
  */
 package org.springframework.integration.samples.tcpamqp;
 
@@ -61,13 +55,13 @@ public final class Main {
 														  
 					This is the TCP-AMQP Sample -						 
 														  
-					Start a netcat, listening on port 11112 -			 
-					netcat -l 11112									   
+					Start a netcat, listening on port 11112 -
+					netcat -l 11112
 														  
-					In another terminal, telnet to localhost 11111		
-					Enter text and you will see it echoed to the netcat   
+					In another terminal, telnet to localhost 11111
+					Enter text and you will see it echoed to the netcat
 														  
-					Press Enter in this console to terminate			  
+					Press Enter in this console to terminate
 														  
 				=========================================================
 				""");

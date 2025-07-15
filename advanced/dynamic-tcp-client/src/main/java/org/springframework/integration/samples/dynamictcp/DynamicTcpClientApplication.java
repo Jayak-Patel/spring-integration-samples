@@ -6,12 +6,6 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package org.springframework.integration.samples.dynamictcp;
@@ -53,11 +47,31 @@ public class DynamicTcpClientApplication {
 	public static void main(String[] args) {
 		ConfigurableApplicationContext context = SpringApplication.run(DynamicTcpClientApplication.class, args);
 		ToTCP toTcp = context.getBean(ToTCP.class);
-		toTcp.send("foo", "localhost", 1234);
-		toTcp.send("foo", "localhost", 5678);
+		if (toTcp != null){
+			toTcp.send("foo", "localhost", 1234);
+			toTcp.send("foo", "localhost", 5678);
+		} else {
+			LOGGER.error("ToTCP bean is null, cannot send messages.");
+		}
+		
 		QueueChannel outputChannel = context.getBean("outputChannel", QueueChannel.class);
-		LOGGER.info(outputChannel.receive(10000).toString());
-		LOGGER.info(outputChannel.receive(10000).toString());
+		if (outputChannel != null) {
+			Message<?> receivedMessage1 = outputChannel.receive(10000);
+			if (receivedMessage1 != null) {
+				LOGGER.info(receivedMessage1.toString());
+			} else {
+				LOGGER.warn("No message received from outputChannel within 10000ms");
+			}
+
+			Message<?> receivedMessage2 = outputChannel.receive(10000);
+			if (receivedMessage2 != null) {
+				LOGGER.info(receivedMessage2.toString());
+			} else {
+				LOGGER.warn("No message received from outputChannel within 10000ms");
+			}
+		} else {
+			LOGGER.error("outputChannel bean is null, cannot receive messages.");
+		}
 		context.close();
 	}
 
@@ -160,7 +174,12 @@ public class DynamicTcpClientApplication {
 			handler.setConnectionFactory(cf);
 			// Check if the connection factory is already started before starting it.
 			if (!cf.isRunning()) {
-				cf.start();
+				try{
+					cf.start();
+				} catch (Exception e) {
+					LOGGER.error(String.format("Exception during cf.start(): %s", e.getMessage()));
+				}
+
 			}
 
 			IntegrationFlow flow = f -> f.handle(handler);
@@ -172,14 +191,14 @@ public class DynamicTcpClientApplication {
 							.register();
 			MessageChannel inputChannel = flowRegistration.getInputChannel();
 			this.subFlows.put(hostPort, inputChannel);
-			LOGGER.info("Created new subflow for hostPort: {}", hostPort);
+			LOGGER.info(String.format("Created new subflow for hostPort: %s", hostPort));
 			return inputChannel;
 		}
 
 		private void removeSubFlow(Entry<String, MessageChannel> eldest) {
 			String hostPort = eldest.getKey();
 			this.flowContext.remove(String.format("%s.flow", hostPort));
-			LOGGER.info("Removed subflow for hostPort: {}", hostPort);
+			LOGGER.info(String.format("Removed subflow for hostPort: %s", hostPort));
 		}
 
 	}

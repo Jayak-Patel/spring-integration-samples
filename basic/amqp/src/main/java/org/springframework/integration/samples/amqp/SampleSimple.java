@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2014-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,15 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 /**
  * Starts the Spring Context and will initialize the Spring Integration message flow.
  *
- * @author Gunnar Hillert
- * @author Gary Russell
- * @since 1.0
+ * @author Gary Russell.
+ * @since 4.0
  *
  */
-public final class SampleSimple {
+public final class SamplePubConfirmsReturns {
 
-	private static final Log LOGGER = LogFactory.getLog(SampleSimple.class);
+	private static final Log LOGGER = LogFactory.getLog(SamplePubConfirmsReturns.class);
 
-	private SampleSimple() { }
+	private SamplePubConfirmsReturns() { }
 
 	/**
 	 * Load the Spring Integration Application Context
@@ -50,7 +49,7 @@ public final class SampleSimple {
 
 		@SuppressWarnings("resource")
 		final AbstractApplicationContext context =
-				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/spring-integration-context.xml");
+				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/spring-integration-confirms-context.xml");
 
 		context.registerShutdownHook();
 
@@ -58,12 +57,17 @@ public final class SampleSimple {
 
 				=========================================================
 				                                                          
-				    This is the AMQP Sample -                             
+				    This is the AMQP Sample with confirms/returns -       
 				                                                          
-				    Please enter some text and press return. The entered  
+				    Please enter some text and press return. The entered
 				    Message will be sent to the configured RabbitMQ Queue,
-				    then again immediately retrieved from the Message     
-				    Broker and ultimately printed to the command line.    
+				    then again immediately retrieved from the Message
+				    Broker and ultimately printed to the command line.
+				    Send 'fail' to demonstrate a return because the
+				    message couldn't be routed to a queue.
+				    Send 'nack' to demonstrate a NACK because the
+				    exchange doesn't exist, causing the channel to be
+				    closed in error by the broker.
 				                                                          
 				=========================================================
 				""");

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      https://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.springsource.org/spring-integration/
  */
 
 package org.springframework.integration.samples.jms;
@@ -29,7 +29,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
  * @author Gunnar Hillert
  * @author Gary Russell
  */
-public class Main {
+class Main {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
@@ -68,10 +68,14 @@ public class Main {
 
 		ActiveMqTestUtils.prepare();
 
-		LOGGER.info("\n    Which Demo would you like to run? <enter>:\n");
-		LOGGER.info("\t1. Channel Adapter Demo");
-		LOGGER.info("\t2. Gateway Demo");
-		LOGGER.info("\t3. Aggregation Demo");
+		LOGGER.info("""
+
+				    Which Demo would you like to run? <enter>:
+
+				\t1. Channel Adapter Demo
+				\t2. Gateway Demo
+				\t3. Aggregation Demo
+				""");
 
 		while (true) {
 			final String input = scanner.nextLine();

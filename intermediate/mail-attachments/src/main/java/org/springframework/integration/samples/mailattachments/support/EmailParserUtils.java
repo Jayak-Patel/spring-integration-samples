@@ -1,236 +1,107 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2012 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      https://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.springsource.org/spring-integration/
  */
 
-package org.springframework.integration.samples.mailattachments.support;
+package org.springframework.integration.samples.jms;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.util.List;
+import java.util.Scanner;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import org.springframework.util.Assert;
-
-import jakarta.mail.BodyPart;
-import jakarta.mail.MessagingException;
-import jakarta.mail.Multipart;
-import jakarta.mail.Part;
-import jakarta.mail.internet.ContentType;
-import jakarta.mail.internet.MimeBodyPart;
-import jakarta.mail.internet.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.messaging.Message;
 
 /**
- * Utility Class for parsing mail messages.
+ * A simple bootstrap main() method for starting a pair of JMS Channel
+ * Adapters. Text entered in the console will go through an outbound
+ * JMS Channel Adapter from which it is sent to a JMS Destination.
+ * An inbound JMS Channel Adapter is listening to that same JMS
+ * Destination and will echo the result in the console.
+ * <p>
+ * See the configuration in the three XML files that are referenced below.
  *
+ * @author Mark Fisher
  * @author Gunnar Hillert
  * @author Gary Russell
- * @author Artem Bilan
- *
- * @since 2.2
- *
  */
-public final class EmailParserUtils {
+class Main {
 
-	private static final Log LOGGER = LogFactory.getLog(EmailParserUtils.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
-	/** Prevent instantiation. */
-	private EmailParserUtils() {
-		throw new AssertionError();
-	}
+	private final static String[] configFilesGatewayDemo = {
+		"/META-INF/spring/integration/common.xml",
+		"/META-INF/spring/integration/inboundGateway.xml",
+		"/META-INF/spring/integration/outboundGateway.xml"
+	};
 
-	/**
-	 * Parses a mail message. The respective message can either be the root message
-	 * or another message that is attached to another message.
-	 *
-	 * If the mail message is an instance of {@link String}, then a {@link EmailFragment}
-	 * is being created using the email message's subject line as the file name,
-	 * which will contain the mail message's content.
-	 *
-	 * If the mail message is an instance of {@link Multipart} then we delegate
-	 * to {@link #handleMultipart(File, Multipart, List)}.
-	 *
-	 * @param directory The directory for storing the message. If null this is the root message.
-	 * @param mailMessage The mail message to be parsed. Must not be null.
-	 * @param emailFragments Must not be null.
-	 */
-	public static void handleMessage(final File directory,
-			final jakarta.mail.Message mailMessage,
-			final List<EmailFragment> emailFragments) {
+	private final static String[] configFilesChannelAdapterDemo = {
+		"/META-INF/spring/integration/common.xml",
+		"/META-INF/spring/integration/inboundChannelAdapter.xml",
+		"/META-INF/spring/integration/outboundChannelAdapter.xml"
+	};
 
-		Assert.notNull(mailMessage, "The mail message to be parsed must not be null.");
-		Assert.notNull(emailFragments, "The collection of email fragments must not be null.");
+	private final static String[] configFilesAggregationDemo = {
+		"/META-INF/spring/integration/common.xml",
+		"/META-INF/spring/integration/aggregation.xml"
+	};
 
-		try {
-			Object content = mailMessage.getContent();
-			String subject = mailMessage.getSubject();
-			File directoryToUse = (directory == null) ? new File(subject) : new File(directory, subject);
+	public static void main(String[] args) {
 
-			processContent(directoryToUse, content, mailMessage, emailFragments);
-		}
-		catch (MessagingException e) {
-			LOGGER.error("Error while retrieving the email contents: " + e.getMessage());
-			throw new IllegalStateException("Error while retrieving the email contents.", e);
-		}
-	}
+		final Scanner scanner = new Scanner(System.in);
 
-	private static void processContent(File directoryToUse, Object content, jakarta.mail.Message mailMessage, List<EmailFragment> emailFragments) throws MessagingException {
-		try {
-			if (content instanceof String) {
-				emailFragments.add(new EmailFragment(new File(mailMessage.getSubject()), "message.txt", content));
+		LOGGER.info("""
+
+				=========================================================
+				                                                         
+				    Welcome to the Spring Integration JMS Sample!        
+				                                                         
+				    For more information please visit:                   
+				    https://www.springsource.org/spring-integration/                    
+				                                                         
+				=========================================================
+				""");
+
+		ActiveMqTestUtils.prepare();
+
+		LOGGER.info("\n    Which Demo would you like to run? <enter>:\n");
+		LOGGER.info("\t1. Channel Adapter Demo");
+		LOGGER.info("\t2. Gateway Demo");
+		LOGGER.info("\t3. Aggregation Demo");
+
+		while (true) {
+			final String input = scanner.nextLine();
+
+			if("1".equals(input.trim())) {
+				LOGGER.info("    Loading Channel Adapter Demo...");
+				new ClassPathXmlApplicationContext(configFilesChannelAdapterDemo, Main.class);
+				break;
 			}
-			else if (content instanceof Multipart multipart) {
-				handleMultipart(directoryToUse, multipart, emailFragments);
+			else if("2".equals(input.trim())) {
+				LOGGER.info("    Loading Gateway Demo...");
+				new ClassPathXmlApplicationContext(configFilesGatewayDemo, Main.class);
+				break;
 			}
-			else {
-				throw new IllegalStateException("This content type is not handled - " + content.getClass().getSimpleName());
-			}
-		}
-		catch (IOException e) {
-			LOGGER.error("Error while processing content: " + e.getMessage());
-			throw new IllegalStateException("Error while retrieving the email contents.", e);
-		}
-	}
-
-	/**
-	 * Parses any {@link Multipart} instances that contain text or Html attachments,
-	 * {@link InputStream} instances, additional instances of {@link Multipart}
-	 * or other attached instances of {@link jakarta.mail.Message}.
-	 *
-	 * Will create the respective {@link EmailFragment}s representing those attachments.
-	 *
-	 * Instances of {@link jakarta.mail.Message} are delegated to
-	 * {@link #handleMessage(File, jakarta.mail.Message, List)}. Further instances
-	 * of {@link Multipart} are delegated to
-	 * {@link #handleMultipart(File, Multipart, List)}.
-	 *
-	 * @param directory Must not be null
-	 * @param multipart Must not be null
-	 * @param emailFragments Must not be null
-	 */
-	public static void handleMultipart(File directory, Multipart multipart, List<EmailFragment> emailFragments) {
-
-		Assert.notNull(directory, "The directory must not be null.");
-		Assert.notNull(multipart, "The multipart object to be parsed must not be null.");
-		Assert.notNull(emailFragments, "The collection of email fragments must not be null.");
-
-		try {
-			int count = multipart.getCount();
-
-			if (LOGGER.isInfoEnabled()) {
-				LOGGER.info(String.format("Number of enclosed BodyPart objects: %s.", count));
-			}
-
-			for (int i = 0; i < count; i++) {
-				BodyPart bp = multipart.getBodyPart(i);
-				processBodyPart(directory, bp, emailFragments, i);
-			}
-
-		}
-		catch (MessagingException e) {
-			LOGGER.error("Error while retrieving the number of enclosed BodyPart objects: " + e.getMessage());
-			throw new IllegalStateException("Error while retrieving the number of enclosed BodyPart objects.", e);
-		}
-	}
-
-	private static void processBodyPart(File directory, BodyPart bp, List<EmailFragment> emailFragments, int i) throws MessagingException {
-		try {
-			String contentType = bp.getContentType();
-			String filename = bp.getFileName();
-			String disposition = bp.getDisposition();
-
-			if (filename == null && bp instanceof MimeBodyPart mimeBodyPart) {
-				filename = mimeBodyPart.getContentID();
-			}
-
-			if (LOGGER.isInfoEnabled()) {
-				LOGGER.info("BodyPart - Content Type: {}, filename: {}, disposition: {}",
-						contentType, filename, disposition);
-			}
-
-			if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-				LOGGER.info("Handling attachment '{}', type: '{}'", filename, contentType);
-			}
-
-			Object content = bp.getContent();
-
-			handleContent(directory, content, filename, disposition, contentType, emailFragments, i);
-
-		}
-		catch (IOException e) {
-			LOGGER.error("Error while processing body part: " + e.getMessage());
-			throw new IllegalStateException("Error while retrieving the email contents.", e);
-		}
-	}
-
-	private static void handleContent(File directory, Object content, String filename, String disposition, String contentType, List<EmailFragment> emailFragments, int i) throws MessagingException {
-		try {
-			if (content instanceof String) {
-				processStringContent(directory, content, filename, disposition, contentType, emailFragments, i);
-			}
-			else if (content instanceof InputStream inputStream) {
-				processInputStreamContent(directory, inputStream, filename, emailFragments);
-			}
-			else if (content instanceof jakarta.mail.Message message) {
-				handleMessage(directory, message, emailFragments);
-			}
-			else if (content instanceof Multipart multipart) {
-				handleMultipart(directory, multipart, emailFragments);
+			else if("3".equals(input.trim())) {
+				LOGGER.info("    Loading Aggregation Demo...");
+				new ClassPathXmlApplicationContext(configFilesAggregationDemo, Main.class);
+				break;
 			}
 			else {
-				throw new IllegalStateException("Content type not handled: " + content.getClass().getSimpleName());
+				LOGGER.info("Invalid choice\n\n");
+				LOGGER.info("Enter you choice: ");
 			}
+
 		}
-		catch (IOException e) {
-			LOGGER.error("Error while handling content: " + e.getMessage());
-			throw new IllegalStateException("Error while retrieving the email contents.", e);
-		}
+
+		LOGGER.info("    Please type something and hit <enter>\n");
+		scanner.close();
+
 	}
 
-	private static void processStringContent(File directory, Object content, String filename, String disposition, String contentType, List<EmailFragment> emailFragments, int i) throws ParseException {
-		if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-			emailFragments.add(new EmailFragment(directory, i + "-" + filename, content));
-			LOGGER.info("Handling attachment '{}', type: '{}'", filename, contentType);
-		}
-		else {
-			String textFilename = determineTextFilename(contentType);
-			emailFragments.add(new EmailFragment(directory, textFilename, content));
-		}
-	}
-
-	private static String determineTextFilename(String contentType) throws ParseException {
-		ContentType ct = new ContentType(contentType);
-		String baseType = ct.getBaseType();
-		if ("text/plain".equalsIgnoreCase(baseType)) {
-			return "message.txt";
-		}
-		else if ("text/html".equalsIgnoreCase(baseType)) {
-			return "message.html";
-		}
-		else {
-			return "message.other";
-		}
-	}
-
-	private static void processInputStreamContent(File directory, InputStream contentAsInputStream, String filename, List<EmailFragment> emailFragments) {
-		try {
-			ByteArrayOutputStream bis = new ByteArrayOutputStream();
-
-			IOUtils.copy(contentAsInputStream, bis);
-
-			emailFragments.add(new EmailFragment(directory, filename, bis.toByteArray()));
-		} catch (IOException e) {
-			LOGGER.error("Error while processing input stream content: " + e.getMessage());
-			throw new IllegalStateException("Error while retrieving the email contents.", e);
-		}
-	}
 }

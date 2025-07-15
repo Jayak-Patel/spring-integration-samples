@@ -68,7 +68,7 @@ public class CafeDemoApp {
 
 
 	private static void usage() {
-		logger.info("missing or invalid command line argument [groovy,ruby,python]");
+		logger.error("missing or invalid command line argument [groovy,ruby,python]");
 		System.exit(1);
 	}
 }

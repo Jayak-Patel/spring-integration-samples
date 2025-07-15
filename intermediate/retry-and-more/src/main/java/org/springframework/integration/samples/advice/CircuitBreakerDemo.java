@@ -46,13 +46,13 @@ public class CircuitBreakerDemo {
 
 				=========================================================
 				                                                          
-				    This is the Circuit Breaker Sample -                  
+				    This is the Circuit Breaker Sample -
 				                                                          
-				    Please enter some text and press return a few times.  
-				    Service will succeed only in the last quarter         
-				    minute. Breaker will open after 2 failures and        
-				    will go half-open after 15 seconds.                   
-				    Demo will terminate in 2 minutes.                     
+				    Please enter some text and press return a few times.
+				    Service will succeed only in the last quarter
+				    minute. Breaker will open after 2 failures and
+				    will go half-open after 15 seconds.
+				    Demo will terminate in 2 minutes.
 				                                                          
 				=========================================================
 				""");
