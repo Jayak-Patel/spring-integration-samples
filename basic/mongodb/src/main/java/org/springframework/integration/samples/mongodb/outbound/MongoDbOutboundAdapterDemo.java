@@ -35,7 +35,7 @@ public class MongoDbOutboundAdapterDemo {
 			new MongoDbOutboundAdapterDemo().runDefaultAdapter();
 		}
 		catch (DemoException e) {
-			LOGGER.error("An error occurred during the demo: " + e.getMessage());
+			LOGGER.error(String.format("An error occurred during the demo: %s", e.getMessage()));
 		}
 	}
 

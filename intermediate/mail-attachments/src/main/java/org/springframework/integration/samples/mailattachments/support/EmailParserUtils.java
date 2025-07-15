@@ -75,7 +75,7 @@ public final class EmailParserUtils {
 			String subject = mailMessage.getSubject();
 			File directoryToUse = (directory == null) ? new File(subject) : new File(directory, subject);
 
-			processContent(directoryToUse, content, (Object) mailMessage, emailFragments);
+			processContent(directoryToUse, content, mailMessage, emailFragments);
 		}
 		catch (MessagingException e) {
 			LOGGER.error("Error while retrieving the email contents: " + e.getMessage());
@@ -83,10 +83,10 @@ public final class EmailParserUtils {
 		}
 	}
 
-	private static void processContent(File directoryToUse, Object content, Object mailMessage, List<EmailFragment> emailFragments) throws MessagingException {
+	private static void processContent(File directoryToUse, Object content, jakarta.mail.Message mailMessage, List<EmailFragment> emailFragments) throws MessagingException {
 		try {
 			if (content instanceof String) {
-				emailFragments.add(new EmailFragment(new File(((jakarta.mail.Message) mailMessage).getSubject()), "message.txt", content));
+				emailFragments.add(new EmailFragment(new File(mailMessage.getSubject()), "message.txt", content));
 			}
 			else if (content instanceof Multipart multipart) {
 				handleMultipart(directoryToUse, multipart, emailFragments);

@@ -125,8 +125,10 @@ public class Main {
 
 			Person person = new Person();
 			person.setName(name);
-			person = service.createPerson(person);
-			LOGGER.info("Created person record with id: " + person.getId());
+			Person createdPerson = service.createPerson(person);
+			if (createdPerson != null && createdPerson.getId() != null) {
+				LOGGER.info("Created person record with id: %d".formatted(createdPerson.getId()));
+			}
 			LOGGER.info("Do you want to create another person? (y/n)");
 			String choice = scanner.nextLine();
 
@@ -145,13 +147,19 @@ public class Main {
 
 		if (people != null && !people.isEmpty()) {
 			for (Person person : people) {
-				LOGGER.info(String.format("%d, %s, ", person.getId(), person.getName()));
-				LOGGER.info(DATE_FORMAT.format(person.getCreatedDateTime()));//NOSONAR
+				if (person != null) {
+					if (person.getCreatedDateTime() != null) {
+						LOGGER.info(String.format("%d, %s, %s", person.getId(), person.getName(), DATE_FORMAT.format(person.getCreatedDateTime())));
+					}
+					else {
+						LOGGER.info(String.format("%d, %s, null", person.getId(), person.getName()));
+					}
+				}
 			}
 		}
 		else {
 			LOGGER.info(
-					String.format("No Person record found."));
+					"No Person record found.");
 		}
 
 		LOGGER.info("==================================\n\n");
