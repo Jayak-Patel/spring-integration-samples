@@ -6,12 +6,6 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 package org.springframework.integration.samples.jdbc;
 
@@ -53,14 +47,17 @@ public final class Main {
 	 */
 	public static void main(final String... args) {
 
-		LOGGER.info("\n========================================================="
-				  + "\n                                                         "
-				  + "\n          Welcome to Spring Integration!                 "
-				  + "\n                                                         "
-				  + "\n    For more information please visit:                   "
-				  + "\n    https://www.springsource.org/spring-integration       "
-				  + "\n                                                         "
-				  + "\n=========================================================" );
+		LOGGER.info("""
+
+				=========================================================
+				                                                         
+				          Welcome to Spring Integration!                 
+				                                                         
+				    For more information please visit:                   
+				    https://www.springsource.org/spring-integration       
+				                                                         
+				=========================================================
+				""");
 
 		final AbstractApplicationContext context =
 				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/*-context.xml");
@@ -72,11 +69,14 @@ public final class Main {
 
 		final PersonService personService = context.getBean(PersonService.class);
 
-		LOGGER.info("\n========================================================="
-				  + "\n                                                         "
-				  + "\n    Please press 'q + Enter' to quit the application.    "
-				  + "\n                                                         "
-				  + "\n=========================================================" );
+		LOGGER.info("""
+
+				=========================================================
+				                                                         
+				    Please press 'q + Enter' to quit the application.    
+				                                                         
+				=========================================================
+				""");
 
 		System.out.println("Please enter a choice and press <enter>: ");
 		System.out.println("\t1. Find person details");

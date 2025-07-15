@@ -16,7 +16,7 @@
 
 package org.springframework.integration.sts;
 
-import org.junit.Ignore;
+import org.junit.Assert;
 import org.junit.Test;
 
 import org.springframework.context.ApplicationContext;
@@ -26,7 +26,7 @@ import org.springframework.integration.service.StringConversionService;
 /**
  * Verify that the Spring Integration Application Context starts successfully.
  */
-@Ignore
+
 public class StringConversionServiceTest {
 
     @Test
@@ -34,6 +34,7 @@ public class StringConversionServiceTest {
         final ApplicationContext context
             = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
                                                   StringConversionServiceTest.class);
+		Assert.assertNotNull(context);
         Thread.sleep(2000);
     }
 
@@ -48,10 +49,10 @@ public class StringConversionServiceTest {
         final String stringToConvert = "I love Spring Integration";
         final String expectedResult  = "I LOVE SPRING INTEGRATION";
 
-      //  final String convertedString = service.convertToUpperCase(stringToConvert);
+        final String convertedString = service.convertToUpperCase(stringToConvert);
 
-      //  assertEquals("Expecting that the string is converted to upper case.",
-      //dd                expectedResult, convertedString);
+        Assert.assertEquals("Expecting that the string is converted to upper case.",
+                expectedResult, convertedString);
 
     }
 

@@ -6,12 +6,6 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 package org.springframework.integration.samples.storedprocedure;
 
@@ -50,22 +44,25 @@ public final class Main {
 
 		final Scanner scanner = new Scanner(System.in);
 
-		LOGGER.info("\n========================================================="
-				  + "\n                                                         "
-				  + "\n          Welcome to Spring Integration's                "
-				  + "\n     Stored Procedure/Function Sample for Oracle         "
-				  + "\n                                                         "
-				  + "\n    For more information please visit:                   "
-				  + "\n    https://www.springsource.org/spring-integration       "
-				  + "\n                                                         "
-				  + "\n=========================================================" );
+		LOGGER.info("""
+
+				=========================================================
+				                                                         
+				          Welcome to Spring Integration's                
+				     Stored Procedure/Function Sample for Oracle         
+				                                                         
+				    For more information please visit:                   
+				    https://www.springsource.org/spring-integration       
+				                                                         
+				=========================================================
+				""");
 
 		while (true) {
 
-			System.out.println("Please enter a choice and press <enter>: ");
-			System.out.println("\t1. Execute Sample 1 (Capitalize String)");
-			System.out.println("\t2. Execute Sample 2 (Coffee Service)");
-			System.out.println("\tq. Quit the application");
+			LOGGER.info("Please enter a choice and press <enter>: ");
+			LOGGER.info("\t1. Execute Sample 1 (Capitalize String)");
+			LOGGER.info("\t2. Execute Sample 2 (Coffee Service)");
+			LOGGER.info("\tq. Quit the application");
 
 			final String input = scanner.nextLine();
 
@@ -78,12 +75,12 @@ public final class Main {
 			} else if("q".equals(input.trim())) {
 				break;
 			} else {
-				System.out.println("Invalid choice\n\n");
-				System.out.print("Enter you choice: ");
+				LOGGER.info("Invalid choice\n\n");
+				LOGGER.info("Enter you choice: ");
 			}
 		}
 
-		System.out.println("Exiting application.");
+		LOGGER.info("Exiting application.");
 		scanner.close();
 
 	}
@@ -99,32 +96,36 @@ public final class Main {
 
 		final StringConversionService service = context.getBean(StringConversionService.class);
 
-		final String message =
-				  "\n========================================================="
-				+ "\n                                                         "
-				+ "\n    Please press 'q + Enter' to quit the application.    "
-				+ "\n                                                         "
-				+ "\n========================================================="
-				+ "\n\n Please enter a string and press <enter>: ";
+		final String message = """
 
-		System.out.print(message);
+
+				=========================================================
+				                                                         
+				    Please press 'q + Enter' to quit the application.    
+				                                                         
+				=========================================================
+
+				 Please enter a string and press <enter>: """
+				;
+
+		LOGGER.info(message);
 
 		while (!scanner.hasNext("q")) {
 			String input = scanner.nextLine();
 
-			System.out.println("Converting String to Uppercase using Stored Procedure...");
+			LOGGER.info("Converting String to Uppercase using Stored Procedure...");
 			String inputUpperCase = service.convertToUpperCase(input);
 
-			System.out.println("Retrieving Numeric value via Sql Function...");
+			LOGGER.info("Retrieving Numeric value via Sql Function...");
 			Integer number = service.getNumber();
 
-			System.out.println(String.format("Converted '%s' - End Result: '%s_%s'.", input, inputUpperCase, number));
-			System.out.print("To try again, please enter a string and press <enter>:");
+			LOGGER.info(String.format("Converted '%s' - End Result: '%s_%s'.", input, inputUpperCase, number));
+			LOGGER.info("To try again, please enter a string and press <enter>:");
 		}
 
 		scanner.close();
 		context.close();
-		System.out.println("Back to main menu.");
+		LOGGER.info("Back to main menu.");
 
 	}
 
@@ -139,12 +140,17 @@ public final class Main {
 
 		final CoffeeService service = context.getBean(CoffeeService.class);
 
-		final String message = "\n\n" +
-			"* Please enter 'list' and press <enter> to get a list of coffees.\n" +
-			"* Enter a coffee id, e.g. '1' and press <enter> to get a description.\n" +
-			"* Please press 'q + Enter' to quit the application.\n";
+		final String message = """
 
-		System.out.println(message);
+
+			* Please enter 'list' and press <enter> to get a list of coffees.
+			* Enter a coffee id, e.g. '1' and press <enter> to get a description.
+			* Please press 'q + Enter' to quit the application.
+
+			"""
+				;
+
+		LOGGER.info(message);
 
 		while (!scanner.hasNext("q")) {
 
@@ -154,16 +160,16 @@ public final class Main {
 				List<CoffeeBeverage> coffeeBeverages = service.findAllCoffeeBeverages();
 
 				for (CoffeeBeverage coffeeBeverage : coffeeBeverages) {
-					System.out.println(String.format("%s - %s", coffeeBeverage.getId(),
+					LOGGER.info(String.format("%s - %s", coffeeBeverage.getId(),
 																coffeeBeverage.getName()));
 				}
 
 			} else {
-				System.out.println("Retrieving coffee information...");
+				LOGGER.info("Retrieving coffee information...");
 				String coffeeDescription = service.findCoffeeBeverage(Integer.valueOf(input));
 
-				System.out.println(String.format("Searched for '%s' - Found: '%s'.", input, coffeeDescription));
-				System.out.print("To try again, please enter another coffee beverage and press <enter>:\n\n");
+				LOGGER.info(String.format("Searched for '%s' - Found: '%s'.", input, coffeeDescription));
+				LOGGER.info("To try again, please enter another coffee beverage and press <enter>:\n\n");
 			}
 
 		}
@@ -171,7 +177,7 @@ public final class Main {
 		scanner.close();
 		context.close();
 
-		System.out.println("Back to main menu.");
+		LOGGER.info("Back to main menu.");
 	}
 
 }

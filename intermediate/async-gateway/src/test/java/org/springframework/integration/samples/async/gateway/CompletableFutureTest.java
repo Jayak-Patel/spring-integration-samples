@@ -54,7 +54,7 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
  */
 @SpringJUnitConfig
 @DirtiesContext
-public class CompletableFutureTest {
+class CompletableFutureTest {
 
 	private static final Log logger = LogFactory.getLog(CompletableFutureTest.class);
 
@@ -62,7 +62,7 @@ public class CompletableFutureTest {
 	private MathGateway gateway;
 
 	@Test
-	public void testAsyncGateway() throws Exception {
+	void testAsyncGateway() throws Exception {
 		Random random = new Random();
 		int[] numbers = new int[100];
 		int expectedResults = 0;
@@ -90,7 +90,7 @@ public class CompletableFutureTest {
 			});
 		}
 		assertThat(latch.await(60, TimeUnit.SECONDS)).isTrue();
-		assertThat(failures.get()).isEqualTo(0);
+		assertThat(failures.get()).isZero();
 		logger.info("Finished");
 	}
 
@@ -98,7 +98,7 @@ public class CompletableFutureTest {
 	@ComponentScan
 	@EnableIntegration
 	@IntegrationComponentScan
-	public static class TestConfig {
+	static class TestConfig {
 
 		@Bean
 		public MessageChannel gatewayChannel() {
@@ -121,7 +121,7 @@ public class CompletableFutureTest {
 	}
 
 	@MessagingGateway(defaultReplyTimeout = "0", asyncExecutor = "exec")
-	public interface MathGateway {
+	interface MathGateway {
 
 		@Gateway(requestChannel = "gatewayChannel")
 		CompletableFuture<Integer> multiplyByTwo(int number);
@@ -129,7 +129,7 @@ public class CompletableFutureTest {
 	}
 
 	@MessageEndpoint
-	public static class Gt100Filter {
+	static class Gt100Filter {
 
 		@Filter(inputChannel = "gatewayChannel", outputChannel = "mathServiceChannel")
 		public boolean filter(int i) {

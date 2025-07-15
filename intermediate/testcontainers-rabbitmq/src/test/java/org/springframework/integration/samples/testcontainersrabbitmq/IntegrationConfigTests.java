@@ -70,13 +70,13 @@ class IntegrationConfigTests {
 	}
 
 	@TestConfiguration
-	public static class Config {
+	static class Config {
 
-		public static final String TOPIC_EXCHANGE = "downstream";
+		static final String TOPIC_EXCHANGE = "downstream";
 
-		public static final String RESULTS_QUEUE = "downstream.results";
+		static final String RESULTS_QUEUE = "downstream.results";
 
-		public static final String RESULTS_ROUTING_KEY = "downstream.results.#";
+		static final String RESULTS_ROUTING_KEY = "downstream.results.#";
 
 		@Bean
 		TopicExchange topicExchange() {

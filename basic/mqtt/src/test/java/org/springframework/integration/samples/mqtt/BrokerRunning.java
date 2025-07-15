@@ -72,6 +72,7 @@ public class BrokerRunning extends TestWatcher {
 					client.close();
 				}
 				catch (MqttException e) {
+					// Ignore
 				}
 			}
 		}

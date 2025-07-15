@@ -6,12 +6,6 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package org.springframework.integration.samples.ftp;
@@ -66,7 +60,7 @@ public class TestSuite {
 	public static FtpServer server;
 
 	@BeforeClass
-	public static void setupFtpServer() throws FtpException, IOException {
+	public static void setupFtpServer() throws FtpException {
 
 		Integer availableServerSocket;
 
@@ -92,11 +86,16 @@ public class TestSuite {
 
 		server = serverFactory.createServer();
 
-		server.start();
+		try {
+			server.start();
+		}
+		catch (FtpException e) {
+			throw new IllegalStateException(e);
+		}
 
 		Listener listener = serverFactory.getListeners().values().iterator().next();
 		availableServerSocket = listener.getPort();
-		LOGGER.info("Using open server port..." + availableServerSocket);
+		LOGGER.info("Using open server port...{}", availableServerSocket);
 		System.setProperty(SERVER_PORT_SYSTEM_PROPERTY, availableServerSocket.toString());
 	}
 

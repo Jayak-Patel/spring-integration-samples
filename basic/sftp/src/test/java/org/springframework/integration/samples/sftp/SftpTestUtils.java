@@ -67,7 +67,12 @@ public class SftpTestUtils {
 				}
 
 				// should be empty
-				session.rmdir("si.sftp.sample");
+				try {
+					session.rmdir("si.sftp.sample");
+				}
+				catch (IOException e) {
+					//It is ok. May be some files exists.
+				}
 				return null;
 			});
 		}

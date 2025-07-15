@@ -6,17 +6,14 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package org.springframework.integration.samples.tcpheaders;
 
 import java.util.Scanner;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
@@ -36,6 +33,8 @@ import org.springframework.util.StringUtils;
 
 @SpringBootApplication
 public class TcpWithHeadersApplication {
+
+	private static final Log LOGGER = LogFactory.getLog(TcpWithHeadersApplication.class);
 
 	public static void main(String[] args) {
 		SpringApplication.run(TcpWithHeadersApplication.class, args);
@@ -98,31 +97,36 @@ public class TcpWithHeadersApplication {
 			ConfigurableApplicationContext context) {
 
 		return args -> {
-			System.out.println("""
+			LOGGER.info("""
 					Enter some text; if it starts with a lower case character,
 					it will be upper-cased by the server; otherwise it will be lower-cased;
 					enter 'quit' to end""");
-			Scanner scanner = new Scanner(System.in);
-			String request;
-			if (scanner.hasNextLine()) {
-				request = scanner.nextLine();
-				while (!"quit".equalsIgnoreCase(request)) {
-					if (StringUtils.hasText(request)) {
-						String result = exchanger.exchange(request,
-								Character.isLowerCase(request.charAt(0)) ? "upper" : "lower");
-						System.out.println(result);
-					}
-					if (scanner.hasNextLine()) {
-						request = scanner.nextLine();
-					}
-					else {
-						request = "quit";
-					}
-				}
-			}
-			scanner.close();
-			context.close();
+			processInput(exchanger, context);
 		};
+	}
+
+	private void processInput(TcpExchanger exchanger, ConfigurableApplicationContext context) {
+		try (Scanner scanner = new Scanner(System.in)) {
+			String request = getNextRequest(scanner);
+			while (!"quit".equalsIgnoreCase(request)) {
+				if (StringUtils.hasText(request)) {
+					String result = exchanger.exchange(request,
+							Character.isLowerCase(request.charAt(0)) ? "upper" : "lower");
+					LOGGER.info(result);
+				}
+				request = getNextRequest(scanner);
+			}
+		}
+		context.close();
+	}
+
+	private String getNextRequest(Scanner scanner) {
+		if (scanner.hasNextLine()) {
+			return scanner.nextLine();
+		}
+		else {
+			return "quit";
+		}
 	}
 
 }

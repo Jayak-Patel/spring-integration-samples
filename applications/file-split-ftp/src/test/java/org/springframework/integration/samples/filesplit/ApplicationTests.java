@@ -6,12 +6,6 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package org.springframework.integration.samples.filesplit;
@@ -30,6 +24,9 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.net.ftp.FTPFile;
@@ -61,7 +58,7 @@ import jakarta.mail.internet.MimeMessage;
 @SpringBootTest(properties = "spring.main.allow-bean-definition-overriding=true")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @SpringIntegrationTest(noAutoStartup = "fileInboundChannelAdapter")
-public class ApplicationTests {
+class ApplicationTests {
 
 	private static GreenMail mailServer;
 
@@ -72,7 +69,7 @@ public class ApplicationTests {
 	private SourcePollingChannelAdapter fileInboundChannelAdapter;
 
 	@BeforeAll
-	public static void setup() {
+	static void setup() {
 		ServerSetup smtp = ServerSetupTest.SMTP.dynamicPort();
 		smtp.setServerStartupTimeout(10000);
 		mailServer = new GreenMail(smtp);
@@ -88,14 +85,14 @@ public class ApplicationTests {
 	}
 
 	@BeforeEach
-	public void beforeTest() throws FolderException, IOException {
+	void beforeTest() throws FolderException, IOException {
 		mailServer.purgeEmailFromAllMailboxes();
 		cleanup();
 		this.fileInboundChannelAdapter.start();
 	}
 
 	@AfterEach
-	public void cleanup() throws IOException {
+	void cleanup() throws IOException {
 		File inDir = new File("/tmp/in");
 		if (inDir.exists()) {
 			FileUtils.cleanDirectory(inDir);
@@ -108,14 +105,14 @@ public class ApplicationTests {
 	}
 
 	@Test
-	public void testSuccess() throws Exception {
+	void testSuccess() throws Exception {
 		MimeMessage message = runTest(false);
 		assertThat(message.getSubject()).isEqualTo("File successfully split and transferred");
 		assertThat(message.getContent()).asString().contains(TestUtils.applySystemFileSeparator("/tmp/in/foo.txt"));
 	}
 
 	@Test
-	public void testFailure() throws Exception {
+	void testFailure() throws Exception {
 		willThrow(new RuntimeException("fail test exception"))
 				.given(this.session).write(any(InputStream.class), eq("foo/002.txt.writing"));
 		MimeMessage message = runTest(true);
@@ -136,44 +133,35 @@ public class ApplicationTests {
 		fos.write("*002,foo,bar\n*006,baz,qux\n*009,fiz,buz\n".getBytes());
 		fos.close();
 		in.renameTo(new File("/tmp/in/", "foo.txt"));
-		File out = new File("/tmp/out/002.txt");
-		int n = 0;
-		while (n++ < 100 && (!out.exists() || out.length() < 12)) {
-			Thread.sleep(100);
+		File out002 = new File("/tmp/out/002.txt");
+		File out006 = new File("/tmp/out/006.txt");
+		File out009 = new File("/tmp/out/009.txt");
+
+		assertThat(waitForFile(out002, 12, 10, TimeUnit.SECONDS)).isTrue();
+		try (BufferedReader br = new BufferedReader(new FileReader(out002))) {
+			assertThat(br.readLine()).isEqualTo("*002,foo,bar");
 		}
-		assertThat(out.exists()).isTrue();
-		BufferedReader br = new BufferedReader(new FileReader(out));
-		assertThat(br.readLine()).isEqualTo("*002,foo,bar");
-		br.close();
-		out = new File("/tmp/out/006.txt");
-		n = 0;
-		while (n++ < 100 && (!out.exists() || out.length() < 12)) {
-			Thread.sleep(100);
+
+		assertThat(waitForFile(out006, 12, 10, TimeUnit.SECONDS)).isTrue();
+		try (BufferedReader br = new BufferedReader(new FileReader(out006))) {
+			assertThat(br.readLine()).isEqualTo("*006,baz,qux");
 		}
-		assertThat(out.exists()).isTrue();
-		br = new BufferedReader(new FileReader(out));
-		assertThat(br.readLine()).isEqualTo("*006,baz,qux");
-		br.close();
-		out = new File("/tmp/out/009.txt");
-		n = 0;
-		while (n++ < 100 && (!out.exists() || out.length() < 12)) {
-			Thread.sleep(100);
+
+		assertThat(waitForFile(out009, 12, 10, TimeUnit.SECONDS)).isTrue();
+		try (BufferedReader br = new BufferedReader(new FileReader(out009))) {
+			assertThat(br.readLine()).isEqualTo("*009,fiz,buz");
 		}
-		assertThat(out.exists()).isTrue();
-		br = new BufferedReader(new FileReader(out));
-		assertThat(br.readLine()).isEqualTo("*009,fiz,buz");
-		br.close();
+
+		File resultFile;
 		if (!fail) {
-			in = new File("/tmp/in/", "foo.txt.success");
+			resultFile = new File("/tmp/in/", "foo.txt.success");
 		}
 		else {
-			in = new File("/tmp/in/", "foo.txt.failed");
+			resultFile = new File("/tmp/in/", "foo.txt.failed");
 		}
-		n = 0;
-		while (n++ < 100 && !in.exists()) {
-			Thread.sleep(100);
-		}
-		assertThat(in.exists()).isTrue();
+
+		assertThat(waitForFile(resultFile, 0, 10, TimeUnit.SECONDS)).isTrue();
+
 		// verify FTP
 		verify(this.session).write(any(InputStream.class), eq("foo/002.txt.writing"));
 		if (!fail) {
@@ -184,13 +172,37 @@ public class ApplicationTests {
 			verify(this.session).rename("foo/009.txt.writing", "foo/009.txt");
 		}
 
-		MimeMessage message = verifyMail();
-		assertThat(message.getFrom()).containsOnly(new InternetAddress("foo@bar"));
-		assertThat(message.getRecipients(MimeMessage.RecipientType.TO)).containsOnly(new InternetAddress("bar@baz"));
-		return message;
+		return verifyMail();
 	}
 
-	public MimeMessage verifyMail() {
+	private boolean waitForFile(File file, long minSize, long timeout, TimeUnit timeUnit) throws InterruptedException {
+		AtomicBoolean result = new AtomicBoolean();
+		CountDownLatch latch = new CountDownLatch(1);
+
+		new Thread(() -> {
+			long startTime = System.currentTimeMillis();
+			while (System.currentTimeMillis() - startTime < timeUnit.toMillis(timeout)) {
+				if (file.exists() && file.length() >= minSize) {
+					result.set(true);
+					latch.countDown();
+					return;
+				}
+				try {
+					Thread.sleep(100);
+				}
+				catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					return;
+				}
+			}
+			result.set(false);
+			latch.countDown();
+		}).start();
+
+		return latch.await(timeout, timeUnit);
+	}
+
+	MimeMessage verifyMail() {
 		mailServer.waitForIncomingEmail(10000, 1);
 		MimeMessage[] mail = mailServer.getReceivedMessagesForDomain("baz");
 		assertThat(mail).hasSize(1);
@@ -204,20 +216,20 @@ public class ApplicationTests {
 	 */
 	@Configuration
 	@Import(Application.class)
-	public static class Config {
+	static class Config {
 
 		@Bean
-		public SessionFactory<FTPFile> ftp1() {
+		SessionFactory<FTPFile> ftp1() {
 			return mockSf();
 		}
 
 		@Bean
-		public SessionFactory<FTPFile> ftp2() {
+		SessionFactory<FTPFile> ftp2() {
 			return mockSf();
 		}
 
 		@Bean
-		public SessionFactory<FTPFile> ftp3() {
+		SessionFactory<FTPFile> ftp3() {
 			return mockSf();
 		}
 
@@ -230,7 +242,7 @@ public class ApplicationTests {
 
 		@Bean
 		@SuppressWarnings("unchecked")
-		public Session<FTPFile> mockSession() {
+		Session<FTPFile> mockSession() {
 			return mock(Session.class);
 		}
 

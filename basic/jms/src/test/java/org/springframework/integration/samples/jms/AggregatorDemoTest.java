@@ -6,12 +6,6 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package org.springframework.integration.samples.jms;
@@ -28,21 +22,22 @@ import org.springframework.integration.support.MessageBuilder;
 import org.springframework.jms.listener.DefaultMessageListenerContainer;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.util.backoff.FixedBackOff;
 
 /**
  * @author Gunnar Hillert
  * @author Gary Russell
  * @author Artem Bilan
  */
-public class AggregatorDemoTest extends ActiveMQMultiContextTests {
+class AggregatorDemoTest extends ActiveMQMultiContextTests {
 
-	private final static String[] configFilesGatewayDemo = {
+	private static final String[] configFilesGatewayDemo = {
 		"/META-INF/spring/integration/common.xml",
 		"/META-INF/spring/integration/aggregation.xml"
 	};
 
 	@Test
-	public void testGatewayDemo() {
+	void testGatewayDemo() {
 
 		System.setProperty("spring.profiles.active", "testCase");
 
@@ -52,13 +47,15 @@ public class AggregatorDemoTest extends ActiveMQMultiContextTests {
 				.getBeansOfType(DefaultMessageListenerContainer.class);
 		// wait for containers to subscribe before sending a message.
 		containers.values().forEach(c -> {
+			FixedBackOff backOff = new FixedBackOff(100, 100);
 			int n = 0;
 			while (n++ < 100 && !c.isRegisteredWithDestination()) {
 				try {
-					Thread.sleep(100);
+					backOff.backOff();
 				}
 				catch (InterruptedException e) {
 					Thread.currentThread().interrupt();
+					break;
 				}
 			}
 			if (!c.isRegisteredWithDestination()) {

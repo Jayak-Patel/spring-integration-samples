@@ -6,12 +6,6 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package org.springframework.integration.samples.tcpbroadcast;
@@ -25,7 +19,9 @@ import java.util.stream.IntStream;
 
 import javax.net.SocketFactory;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -45,15 +41,16 @@ import org.springframework.integration.ip.tcp.serializer.ByteArrayCrLfSerializer
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @SpringBootApplication
 public class TcpBroadcastApplication {
 
+	private static final Log LOGGER = LogFactory.getLog(TcpBroadcastApplication.class);
 	private static final int PORT = 1234;
+	private static final String DEFAULT_MESSAGE = "Default Broadcast Message";
 
 	@Configuration
 	public static class Config {
@@ -139,21 +136,23 @@ public class TcpBroadcastApplication {
 	@RestController
 	public static class Controller {
 
-		@Autowired
-		private Broadcaster broadcaster;
+		private final Broadcaster broadcaster;
+		private final ConfigurableApplicationContext applicationContext;
 
-		@Autowired
-		private ConfigurableApplicationContext applicationContext;
-
-		@PostMapping("/broadcast/{what}")
-		public String broadcast(@PathVariable String what) {
-			this.broadcaster.send(what);
-			return "sent: " + what;
+		public Controller(Broadcaster broadcaster, ConfigurableApplicationContext applicationContext) {
+			this.broadcaster = broadcaster;
+			this.applicationContext = applicationContext;
 		}
 
-		@RequestMapping("/shutdown")
+		@PostMapping("/broadcast")
+		public String broadcast() {
+			broadcaster.send(DEFAULT_MESSAGE);
+			return "sent: " + DEFAULT_MESSAGE;
+		}
+
+		@GetMapping("/shutdown")
 		public void shutDown() {
-			this.applicationContext.close();
+			applicationContext.close();
 		}
 
 	}
@@ -162,14 +161,20 @@ public class TcpBroadcastApplication {
 	@DependsOn("gateway") // Needed to ensure the gateway flow bean is created first
 	public static class Broadcaster {
 
-		@Autowired
-		private Sender sender;
+		private final Sender sender;
+		private final AbstractServerConnectionFactory server;
 
-		@Autowired
-		private AbstractServerConnectionFactory server;
+		public Broadcaster(Sender sender, AbstractServerConnectionFactory server) {
+			this.sender = sender;
+			this.server = server;
+		}
 
+		/**
+		 * Sends the broadcast message to all connected clients.
+		 * @param what The broadcast message to send.
+		 */
 		public void send(String what) {
-			this.server.getOpenConnectionIds().forEach(cid -> sender.send(what, cid));
+			server.getOpenConnectionIds().forEach(cid -> sender.send(what, cid));
 		}
 
 	}
@@ -180,7 +185,11 @@ public class TcpBroadcastApplication {
 
 		private static int next;
 
-		private final int instance = ++next;
+		private final int instance;
+
+		public Client() {
+			this.instance = ++next;
+		}
 
 		@Override
 		public void run() {
@@ -190,10 +199,23 @@ public class TcpBroadcastApplication {
 				socket.getOutputStream().write("hello\r\n".getBytes());
 				InputStream is = socket.getInputStream();
 				while (true) {
-					System.out.println(new String(deserializer.deserialize(is)) + " from client# " + instance);
+					try {
+						byte[] data = deserializer.deserialize(is);
+						if (data != null) {
+							String receivedMessage = new String(data);
+							LOGGER.info(receivedMessage + " from client# " + instance);
+						} else {
+							LOGGER.warn("Received null data from the server.");
+							break; // Exit loop if null is received, indicating a potential disconnect.
+						}
+					} catch (IOException e) {
+						LOGGER.error("Error while reading or deserializing message from socket", e);
+						break; // Exit the loop on an exception
+					}
 				}
 			}
 			catch (IOException e) {
+				LOGGER.error("Error occurred while creating or writing to socket", e);
 			}
 			finally {
 				if (socket != null) {
@@ -201,6 +223,7 @@ public class TcpBroadcastApplication {
 						socket.close();
 					}
 					catch (IOException e) {
+						LOGGER.error("Error while closing socket", e);
 					}
 				}
 			}

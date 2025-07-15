@@ -21,6 +21,9 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -45,14 +48,16 @@ import org.springframework.util.Assert;
 @EnableMessageHistory
 public class DynamicTcpClientApplication {
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(DynamicTcpClientApplication.class);
+
 	public static void main(String[] args) {
 		ConfigurableApplicationContext context = SpringApplication.run(DynamicTcpClientApplication.class, args);
 		ToTCP toTcp = context.getBean(ToTCP.class);
 		toTcp.send("foo", "localhost", 1234);
 		toTcp.send("foo", "localhost", 5678);
 		QueueChannel outputChannel = context.getBean("outputChannel", QueueChannel.class);
-		System.out.println(outputChannel.receive(10000));
-		System.out.println(outputChannel.receive(10000));
+		LOGGER.info(outputChannel.receive(10000).toString());
+		LOGGER.info(outputChannel.receive(10000).toString());
 		context.close();
 	}
 
@@ -61,7 +66,7 @@ public class DynamicTcpClientApplication {
 	@MessagingGateway(defaultRequestChannel = "toTcp.input")
 	public interface ToTCP {
 
-		public void send(String data, @Header("host") String host, @Header("port") int port);
+		void send(String data, @Header("host") String host, @Header("port") int port);
 
 	}
 
@@ -105,7 +110,9 @@ public class DynamicTcpClientApplication {
 
 	public static class TcpRouter extends AbstractMessageRouter {
 
-		private final static int MAX_CACHED = 10; // When this is exceeded, we remove the LRU.
+		private static final Logger LOGGER = LoggerFactory.getLogger(TcpRouter.class);
+
+		private static final int MAX_CACHED = 10; // When this is exceeded, we remove the LRU.
 
 		@SuppressWarnings("serial")
 		private final LinkedHashMap<String, MessageChannel> subFlows =
@@ -154,12 +161,14 @@ public class DynamicTcpClientApplication {
 							.register();
 			MessageChannel inputChannel = flowRegistration.getInputChannel();
 			this.subFlows.put(hostPort, inputChannel);
+			LOGGER.info("Created new subflow for hostPort: " + hostPort);
 			return inputChannel;
 		}
 
 		private void removeSubFlow(Entry<String, MessageChannel> eldest) {
 			String hostPort = eldest.getKey();
 			this.flowContext.remove(hostPort + ".flow");
+			LOGGER.info("Removed subflow for hostPort: " + hostPort);
 		}
 
 	}

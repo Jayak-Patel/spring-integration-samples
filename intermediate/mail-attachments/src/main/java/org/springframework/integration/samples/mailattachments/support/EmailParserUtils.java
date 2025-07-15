@@ -6,12 +6,6 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package org.springframework.integration.samples.mailattachments.support;
@@ -77,40 +71,28 @@ public final class EmailParserUtils {
 		Assert.notNull(mailMessage, "The mail message to be parsed must not be null.");
 		Assert.notNull(emailFragments, "The collection of email fragments must not be null.");
 
-		final Object content;
-		final String subject;
-
 		try {
-			content = mailMessage.getContent();
-			subject = mailMessage.getSubject();
+			Object content = mailMessage.getContent();
+			String subject = mailMessage.getSubject();
+			File directoryToUse = (directory == null) ? new File(subject) : new File(directory, subject);
+
+			processContent(directoryToUse, content, mailMessage, emailFragments);
 		}
-		catch (IOException e) {
+		catch (IOException | MessagingException e) {
 			throw new IllegalStateException("Error while retrieving the email contents.", e);
 		}
-		catch (MessagingException e) {
-			throw new IllegalStateException("Error while retrieving the email contents.", e);
-		}
+	}
 
-		final File directoryToUse;
-
-		if (directory == null) {
-			directoryToUse = new File(subject);
-		}
-		else {
-			directoryToUse = new File(directory, subject);
-		}
-
+	private static void processContent(File directoryToUse, Object content, jakarta.mail.Message mailMessage, List<EmailFragment> emailFragments) throws IOException, MessagingException {
 		if (content instanceof String) {
-			emailFragments.add(new EmailFragment(new File(subject), "message.txt", content));
+			emailFragments.add(new EmailFragment(new File(mailMessage.getSubject()), "message.txt", content));
 		}
-		else if (content instanceof Multipart) {
-			Multipart multipart = (Multipart) content;
+		else if (content instanceof Multipart multipart) {
 			handleMultipart(directoryToUse, multipart, mailMessage, emailFragments);
 		}
 		else {
 			throw new IllegalStateException("This content type is not handled - " + content.getClass().getSimpleName());
 		}
-
 	}
 
 	/**
@@ -137,132 +119,102 @@ public final class EmailParserUtils {
 		Assert.notNull(mailMessage, "The mail message to be parsed must not be null.");
 		Assert.notNull(emailFragments, "The collection of email fragments must not be null.");
 
-		final int count;
-
 		try {
-			count = multipart.getCount();
+			int count = multipart.getCount();
 
 			if (LOGGER.isInfoEnabled()) {
 				LOGGER.info(String.format("Number of enclosed BodyPart objects: %s.", count));
+			}
+
+			for (int i = 0; i < count; i++) {
+				BodyPart bp = multipart.getBodyPart(i);
+				processBodyPart(directory, bp, mailMessage, emailFragments, i);
 			}
 
 		}
 		catch (MessagingException e) {
 			throw new IllegalStateException("Error while retrieving the number of enclosed BodyPart objects.", e);
 		}
+	}
 
-		for (int i = 0; i < count; i++) {
+	private static void processBodyPart(File directory, BodyPart bp, jakarta.mail.Message mailMessage, List<EmailFragment> emailFragments, int i) throws MessagingException {
+		try {
+			String contentType = bp.getContentType();
+			String filename = bp.getFileName();
+			String disposition = bp.getDisposition();
 
-			final BodyPart bp;
-
-			try {
-				bp = multipart.getBodyPart(i);
-			}
-			catch (MessagingException e) {
-				throw new IllegalStateException("Error while retrieving body part.", e);
-			}
-
-			final String contentType;
-			String filename;
-			final String disposition;
-			final String subject;
-
-			try {
-
-				contentType = bp.getContentType();
-				filename = bp.getFileName();
-				disposition = bp.getDisposition();
-				subject = mailMessage.getSubject();
-
-				if (filename == null && bp instanceof MimeBodyPart) {
-					filename = ((MimeBodyPart) bp).getContentID();
-				}
-
-			}
-			catch (MessagingException e) {
-				throw new IllegalStateException("Unable to retrieve body part meta data.", e);
+			if (filename == null && bp instanceof MimeBodyPart mimeBodyPart) {
+				filename = mimeBodyPart.getContentID();
 			}
 
 			if (LOGGER.isInfoEnabled()) {
-				LOGGER.info(String.format("BodyPart - Content Type: '%s', filename: '%s', disposition: '%s', subject: '%s'",
-						new Object[]{ contentType, filename, disposition, subject }));
+				LOGGER.info(String.format("BodyPart - Content Type: '%s', filename: '%s', disposition: '%s'",
+						new Object[]{contentType, filename, disposition}));
 			}
 
 			if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
 				LOGGER.info(String.format("Handling attachment '%s', type: '%s'", filename, contentType));
 			}
 
-			final Object content;
+			Object content = bp.getContent();
 
-			try {
-				content = bp.getContent();
-			}
-			catch (IOException e) {
-				throw new IllegalStateException("Error while retrieving the email contents.", e);
-			}
-			catch (MessagingException e) {
-				throw new IllegalStateException("Error while retrieving the email contents.", e);
-			}
+			handleContent(directory, content, filename, disposition, contentType, emailFragments, i);
 
-			if (content instanceof String) {
-
-				if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
-					emailFragments.add(new EmailFragment(directory, i + "-" + filename, content));
-					LOGGER.info(String.format("Handling attachment '%s', type: '%s'", filename, contentType));
-				}
-				else {
-
-					final String textFilename;
-					final ContentType ct;
-
-					try {
-						ct = new ContentType(contentType);
-					}
-					catch (ParseException e) {
-						throw new IllegalStateException("Error while parsing content type '" + contentType + "'.", e);
-					}
-
-					if ("text/plain".equalsIgnoreCase(ct.getBaseType())) {
-						textFilename = "message.txt";
-					}
-					else if ("text/html".equalsIgnoreCase(ct.getBaseType())) {
-						textFilename = "message.html";
-					}
-					else {
-						textFilename = "message.other";
-					}
-
-					emailFragments.add(new EmailFragment(directory, textFilename, content));
-				}
-
-
-			}
-			else if (content instanceof InputStream) {
-
-				final InputStream inputStream = (InputStream) content;
-				final ByteArrayOutputStream bis = new ByteArrayOutputStream();
-
-				try {
-					IOUtils.copy(inputStream, bis);
-				}
-				catch (IOException e) {
-					throw new IllegalStateException("Error while copying input stream to the ByteArrayOutputStream.", e);
-				}
-
-				emailFragments.add(new EmailFragment(directory, filename, bis.toByteArray()));
-
-			}
-			else if (content instanceof jakarta.mail.Message) {
-				handleMessage(directory, (jakarta.mail.Message) content, emailFragments);
-			}
-			else if (content instanceof Multipart) {
-				final Multipart mp2 = (Multipart) content;
-				handleMultipart(directory, mp2, mailMessage, emailFragments);
-			}
-			else {
-				throw new IllegalStateException("Content type not handled: " + content.getClass().getSimpleName());
-			}
+		}
+		catch (IOException e) {
+			throw new IllegalStateException("Error while retrieving the email contents.", e);
 		}
 	}
 
+	private static void handleContent(File directory, Object content, String filename, String disposition, String contentType, List<EmailFragment> emailFragments, int i) throws IOException, MessagingException {
+		if (content instanceof String) {
+			processStringContent(directory, content, filename, disposition, contentType, emailFragments, i);
+		}
+		else if (content instanceof InputStream inputStream) {
+			processInputStreamContent(directory, content, filename, emailFragments);
+		}
+		else if (content instanceof jakarta.mail.Message message) {
+			handleMessage(directory, message, emailFragments);
+		}
+		else if (content instanceof Multipart multipart) {
+			handleMultipart(directory, multipart, (jakarta.mail.Message) null, emailFragments);
+		}
+		else {
+			throw new IllegalStateException("Content type not handled: " + content.getClass().getSimpleName());
+		}
+	}
+
+	private static void processStringContent(File directory, Object content, String filename, String disposition, String contentType, List<EmailFragment> emailFragments, int i) throws ParseException {
+		if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+			emailFragments.add(new EmailFragment(directory, i + "-" + filename, content));
+			LOGGER.info(String.format("Handling attachment '%s', type: '%s'", filename, contentType));
+		}
+		else {
+			String textFilename = determineTextFilename(contentType);
+			emailFragments.add(new EmailFragment(directory, textFilename, content));
+		}
+	}
+
+	private static String determineTextFilename(String contentType) throws ParseException {
+		ContentType ct = new ContentType(contentType);
+		String baseType = ct.getBaseType();
+		if ("text/plain".equalsIgnoreCase(baseType)) {
+			return "message.txt";
+		}
+		else if ("text/html".equalsIgnoreCase(baseType)) {
+			return "message.html";
+		}
+		else {
+			return "message.other";
+		}
+	}
+
+	private static void processInputStreamContent(File directory, Object content, String filename, List<EmailFragment> emailFragments) throws IOException {
+		InputStream inputStream = (InputStream) content;
+		ByteArrayOutputStream bis = new ByteArrayOutputStream();
+
+		IOUtils.copy(inputStream, bis);
+
+		emailFragments.add(new EmailFragment(directory, filename, bis.toByteArray()));
+	}
 }

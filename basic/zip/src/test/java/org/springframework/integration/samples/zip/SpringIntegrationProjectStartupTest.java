@@ -40,6 +40,8 @@ class SpringIntegrationProjectStartupTest {
 												  SpringIntegrationProjectStartupTest.class)) {
 			SpringIntegrationUtils.displayDirectories(context);
 			assertThat(context.isRunning()).isTrue();
+			assertThat(context.getBeanDefinitionCount()).isGreaterThan(0);
+			assertThat(context.containsBean("zipTransformer")).isTrue();
 		}
 	}
 

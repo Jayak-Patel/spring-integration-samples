@@ -6,22 +6,17 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package org.springframework.integration.samples.dsl.kafka;
 
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -40,6 +35,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Gary Russell
@@ -51,45 +47,62 @@ import org.springframework.messaging.handler.annotation.Header;
 @EnableConfigurationProperties(KafkaAppProperties.class)
 public class Application {
 
+	private static final Log LOGGER = LogFactory.getLog(Application.class);
+
+	private final KafkaAppProperties properties;
+
+	private final IntegrationFlowContext flowContext;
+
+	private final KafkaProperties kafkaProperties;
+
+	private final KafkaGateway kafkaGateway;
+
+	@Autowired
+	public Application(KafkaAppProperties properties, IntegrationFlowContext flowContext,
+			KafkaProperties kafkaProperties) {
+		this.properties = properties;
+		this.flowContext = flowContext;
+		this.kafkaProperties = kafkaProperties;
+		this.kafkaGateway = createKafkaGateway();
+	}
+
 	public static void main(String[] args) {
 		ConfigurableApplicationContext context =
 				new SpringApplicationBuilder(Application.class)
 						.web(WebApplicationType.NONE)
 						.run(args);
-		context.getBean(Application.class).runDemo(context);
+		Application app = context.getBean(Application.class);
+		app.runDemo(context);
 		context.close();
 	}
 
 	private void runDemo(ConfigurableApplicationContext context) {
-		KafkaGateway kafkaGateway = context.getBean(KafkaGateway.class);
-		System.out.println("Sending 10 messages...");
+		LOGGER.info("Sending 10 messages...");
 		for (int i = 0; i < 10; i++) {
 			String message = "foo" + i;
-			System.out.println("Send to Kafka: " + message);
-			kafkaGateway.sendToKafka(message, this.properties.getTopic());
+			LOGGER.info("Send to Kafka: " + message);
+			kafkaGateway.sendToKafka(message, properties.getTopic());
 		}
 
 		for (int i = 0; i < 10; i++) {
 			Message<?> received = kafkaGateway.receiveFromKafka();
-			System.out.println(received);
+			LOGGER.info("Received: " + received);
 		}
-		System.out.println("Adding an adapter for a second topic and sending 10 messages...");
-		addAnotherListenerForTopics(this.properties.getNewTopic());
+		LOGGER.info("Adding an adapter for a second topic and sending 10 messages...");
+		addAnotherListenerForTopics(properties.getNewTopic());
 		for (int i = 0; i < 10; i++) {
 			String message = "bar" + i;
-			System.out.println("Send to Kafka: " + message);
-			kafkaGateway.sendToKafka(message, this.properties.getNewTopic());
+			LOGGER.info("Send to Kafka: " + message);
+			kafkaGateway.sendToKafka(message, properties.getNewTopic());
 		}
 		for (int i = 0; i < 10; i++) {
 			Message<?> received = kafkaGateway.receiveFromKafka();
-			System.out.println(received);
+			LOGGER.info("Received: " + received);
 		}
 		context.close();
 	}
 
-	@Autowired
-	private KafkaAppProperties properties;
-
+	@Component
 	@MessagingGateway
 	public interface KafkaGateway {
 
@@ -102,16 +115,32 @@ public class Application {
 	}
 
 	@Bean
+	public KafkaGateway createKafkaGateway() {
+		return new KafkaGateway() {
+			@Override
+			public void sendToKafka(String payload, @Header(KafkaHeaders.TOPIC) String topic) {
+				// Implementation will be provided by Spring Integration at runtime
+			}
+
+			@Override
+			public Message<?> receiveFromKafka() {
+				// Implementation will be provided by Spring Integration at runtime
+				return null;
+			}
+		};
+	}
+
+	@Bean
 	public IntegrationFlow toKafka(KafkaTemplate<?, ?> kafkaTemplate) {
 		return f -> f
 				.handle(Kafka.outboundChannelAdapter(kafkaTemplate)
-						.messageKey(this.properties.getMessageKey()));
+						.messageKey(properties.getMessageKey()));
 	}
 
 	@Bean
 	public IntegrationFlow fromKafkaFlow(ConsumerFactory<?, ?> consumerFactory) {
 		return IntegrationFlow
-				.from(Kafka.messageDrivenChannelAdapter(consumerFactory, this.properties.getTopic()))
+				.from(Kafka.messageDrivenChannelAdapter(consumerFactory, properties.getTopic()))
 				.channel(c -> c.queue("fromKafka"))
 				.get();
 	}
@@ -129,12 +158,6 @@ public class Application {
 	public NewTopic newTopic(KafkaAppProperties properties) {
 		return new NewTopic(properties.getNewTopic(), 1, (short) 1);
 	}
-
-	@Autowired
-	private IntegrationFlowContext flowContext;
-
-	@Autowired
-	private KafkaProperties kafkaProperties;
 
 	public void addAnotherListenerForTopics(String... topics) {
 		Map<String, Object> consumerProperties = kafkaProperties.buildConsumerProperties(null);

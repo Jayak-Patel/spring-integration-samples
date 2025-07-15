@@ -32,31 +32,41 @@ public class MongoDbOutboundAdapterDemo {
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
-		DemoUtils.prepareMongoFactory(); // will clean up MongoDB
-		new MongoDbOutboundAdapterDemo().runDefaultAdapter();
-//		new MongoDbOutboundAdapterDemo().runAdapterWithConverter();
+		try {
+			DemoUtils.prepareMongoFactory(); // will clean up MongoDB
+			new MongoDbOutboundAdapterDemo().runDefaultAdapter();
+		}
+		catch (DemoException e) {
+			System.err.println("An error occurred during the demo: " + e.getMessage());
+		}
 	}
 
 	public void runDefaultAdapter() throws Exception {
 
-		@SuppressWarnings("resource")
-		ClassPathXmlApplicationContext context =
-				new ClassPathXmlApplicationContext("mongodb-out-config.xml", MongoDbOutboundAdapterDemo.class);
+		try (ClassPathXmlApplicationContext context =
+				new ClassPathXmlApplicationContext("mongodb-out-config.xml", MongoDbOutboundAdapterDemo.class)) {
 
-		MessageChannel messageChannel = context.getBean("defaultAdapter", MessageChannel.class);
-		messageChannel.send(new GenericMessage<Person>(this.createPersonA()));
-		messageChannel.send(new GenericMessage<Person>(this.createPersonB()));
-		messageChannel.send(new GenericMessage<Person>(this.createPersonC()));
+			MessageChannel messageChannel = context.getBean("defaultAdapter", MessageChannel.class);
+			messageChannel.send(new GenericMessage<Person>(this.createPersonA()));
+			messageChannel.send(new GenericMessage<Person>(this.createPersonB()));
+			messageChannel.send(new GenericMessage<Person>(this.createPersonC()));
+		}
+		catch (Exception e) {
+			throw new DemoException("Failed to run default adapter", e);
+		}
 	}
 
 	public void runAdapterWithConverter() throws Exception {
 
-		@SuppressWarnings("resource")
-		ClassPathXmlApplicationContext context =
-				new ClassPathXmlApplicationContext("mongodb-out-config.xml", MongoDbOutboundAdapterDemo.class);
+		try (ClassPathXmlApplicationContext context =
+				new ClassPathXmlApplicationContext("mongodb-out-config.xml", MongoDbOutboundAdapterDemo.class)) {
 
-		MessageChannel messageChannel = context.getBean("adapterWithConverter", MessageChannel.class);
-		messageChannel.send(new GenericMessage<String>("John, Dow, Palo Alto, 3401 Hillview Ave, 94304, CA"));
+			MessageChannel messageChannel = context.getBean("adapterWithConverter", MessageChannel.class);
+			messageChannel.send(new GenericMessage<String>("John, Dow, Palo Alto, 3401 Hillview Ave, 94304, CA"));
+		}
+		catch (Exception e) {
+			throw new DemoException("Failed to run adapter with converter", e);
+		}
 	}
 
 	private Person createPersonA(){
@@ -102,5 +112,17 @@ public class MongoDbOutboundAdapterDemo {
 		person.setAddress(address);
 
 		return person;
+	}
+
+	@SuppressWarnings("serial")
+	public static class DemoException extends Exception {
+
+		public DemoException(String message) {
+			super(message);
+		}
+
+		public DemoException(String message, Throwable cause) {
+			super(message, cause);
+		}
 	}
 }

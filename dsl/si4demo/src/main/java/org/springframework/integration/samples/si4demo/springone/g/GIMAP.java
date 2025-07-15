@@ -6,15 +6,12 @@
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package org.springframework.integration.samples.si4demo.springone.g;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.WebApplicationType;
@@ -40,6 +37,8 @@ import org.springframework.integration.samples.si4demo.springone.GMailProperties
 @EnableAutoConfiguration
 public class GIMAP {
 
+	private static final Log LOGGER = LogFactory.getLog(GIMAP.class);
+
 	@Autowired
 	GMailProperties gmail;
 
@@ -48,7 +47,7 @@ public class GIMAP {
 				new SpringApplicationBuilder(GIMAP.class)
 						.web(WebApplicationType.NONE)
 						.run(args);
-		System.out.println("Hit Enter to terminate");
+		LOGGER.info("Hit Enter to terminate");
 		System.in.read();
 		ctx.close();
 	}
@@ -69,7 +68,7 @@ public class GIMAP {
 						.put(MailHeaders.SUBJECT, "payload.subject")
 						.put(MailHeaders.FROM, "payload.from[0].toString()")))
 				.transform("payload.content")
-				.handle(System.out::println)
+				.handle(m -> LOGGER.info(m.getPayload()))
 				.get();
 	}
 

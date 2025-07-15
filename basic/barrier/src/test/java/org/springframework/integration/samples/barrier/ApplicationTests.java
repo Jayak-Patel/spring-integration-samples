@@ -39,7 +39,7 @@ import org.springframework.messaging.support.GenericMessage;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = Application.class)
 @RabbitAvailable
-public class ApplicationTests {
+class ApplicationTests {
 
 	@Autowired
 	MessageChannel receiveChannel;

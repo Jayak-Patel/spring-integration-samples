@@ -24,6 +24,7 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.apache.commons.net.ftp.FTPFile;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.mail.MailProperties;
@@ -56,6 +57,9 @@ public class Application {
 
 	@Autowired
 	private MailProperties mailProperties;
+
+	@Value("${ftp.remote.directory}")
+	private String ftpRemoteDirectory;
 
 	/**
 	 * Poll for files, add an error channel, split into lines route the start/end markers
@@ -117,17 +121,17 @@ public class Application {
 						// send the first file
 						.subscribe(sf -> sf.<FileSplitter.FileMarker, File>transform(p -> new File("/tmp/out/002.txt"))
 								.enrichHeaders(h -> h.header(FileHeaders.FILENAME, "002.txt", true))
-								.handle(Ftp.outboundAdapter(ftp1()).remoteDirectory("foo"), e -> e.id("ftp002")))
+								.handle(Ftp.outboundAdapter(ftp1()).remoteDirectory(ftpRemoteDirectory), e -> e.id("ftp002")))
 
 						// send the second file
 						.subscribe(sf -> sf.<FileSplitter.FileMarker, File>transform(p -> new File("/tmp/out/006.txt"))
 								.enrichHeaders(h -> h.header(FileHeaders.FILENAME, "006.txt", true))
-								.handle(Ftp.outboundAdapter(ftp2()).remoteDirectory("foo"), e -> e.id("ftp006")))
+								.handle(Ftp.outboundAdapter(ftp2()).remoteDirectory(ftpRemoteDirectory), e -> e.id("ftp006")))
 
 						// send the third file
 						.subscribe(sf -> sf.<FileSplitter.FileMarker, File>transform(p -> new File("/tmp/out/009.txt"))
 								.enrichHeaders(h -> h.header(FileHeaders.FILENAME, "009.txt", true))
-								.handle(Ftp.outboundAdapter(ftp3()).remoteDirectory("foo"), e -> e.id("ftp009")))
+								.handle(Ftp.outboundAdapter(ftp3()).remoteDirectory(ftpRemoteDirectory), e -> e.id("ftp009")))
 
 						// send an email
 						.subscribe(sf -> sf.transform(FileSplitter.FileMarker::getFilePath)
