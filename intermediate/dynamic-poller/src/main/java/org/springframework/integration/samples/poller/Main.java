@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2010 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -8,102 +8,44 @@
  *      https://www.apache.org/licenses/LICENSE-2.0
  */
 
-package org.springframework.integration.samples.poller;
+package org.springframework.integration.sts;
 
-import java.time.Duration;
-import java.util.Scanner;
+import org.junit.Assert;
+import org.junit.Test;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.util.DynamicPeriodicTrigger;
+import org.springframework.integration.service.StringConversionService;
 
 /**
- * Starts the Spring Context and will initialize the Spring Integration routes.
- *
- * @author Gunnar Hillert
- * @author Gary Russell
- * @author Artem Bilan
- *
- * @version 1.0
- *
+ * Verify that the Spring Integration Application Context starts successfully.
  */
-public final class Main {
 
-	private static final Log LOGGER = LogFactory.getLog(Main.class);
+class StringConversionServiceTest {
 
-	private Main() {
-	}
+    @Test
+    void testStartupOfSpringIntegrationContext() throws Exception{
+        final ApplicationContext context
+            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+                                                  StringConversionServiceTest.class);
+		Assert.assertNotNull(context);
+        Thread.sleep(2000);
+		Assert.assertTrue(context.containsBean("stringConversionService"));
+    }
 
-	/**
-	 * Load the Spring Integration Application Context
-	 *
-	 * @param args - command line arguments
-	 */
-	public static void main(final String... args) {
+    @Test
+    void testConvertStringToUpperCase() {
+        final ApplicationContext context
+            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+                                                  StringConversionServiceTest.class);
 
-		LOGGER.info("""
+        final StringConversionService service = context.getBean(StringConversionService.class);
 
-				==========================================================
-				                                                          
-				 Welcome to the Spring Integration Dynamic Poller Sample! 
-				                                                          
-				    For more information please visit:                    
-				    https://www.springsource.org/spring-integration        
-				                                                          
-				=========================================================="""
-		);
+        final String stringToConvert = "I love Spring Integration";
+        final String expectedResult  = "I LOVE SPRING INTEGRATION";
 
-		final AbstractApplicationContext context = new ClassPathXmlApplicationContext(
-				"classpath:META-INF/spring/integration/*-context.xml");
+        Assert.assertEquals("Expecting that the string is converted to upper case.",
+                expectedResult, service.convertToUpperCase(stringToConvert));
+    }
 
-		context.registerShutdownHook();
-
-		final Scanner scanner = new Scanner(System.in);
-
-		final DynamicPeriodicTrigger trigger = context.getBean(DynamicPeriodicTrigger.class);
-
-		LOGGER.info("""
-
-				=========================================================
-				                                                         
-				    Please press 'q + Enter' to quit the application.    
-				                                                         
-				=========================================================""");
-
-		LOGGER.info("Please enter a non-negative numeric value and press <enter>: ");
-
-		while (true) {
-
-			final String input = scanner.nextLine();
-
-			if ("q".equals(input.trim())) {
-				break;
-			}
-
-			try {
-
-				int triggerPeriod = Integer.valueOf(input);
-
-				LOGGER.info(String.format("Setting trigger period to '%s' ms", triggerPeriod));
-
-				trigger.setDuration(Duration.ofMillis(triggerPeriod));
-
-			}
-			catch (Exception e) {
-				LOGGER.error("An exception was caught: " + e);
-			}
-
-			LOGGER.info("Please enter a non-negative numeric value and press <enter>: ");
-
-		}
-
-		LOGGER.info("Exiting application...bye.");
-
-		scanner.close();
-		context.close();
-
-	}
 }

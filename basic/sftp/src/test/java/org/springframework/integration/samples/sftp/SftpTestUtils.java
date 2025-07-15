@@ -70,8 +70,12 @@ class SftpOutboundGatewaySample {
 		finally {
 			SftpTestUtils.cleanUp(template, file1, file2);
 			ctx.close();
-			assertTrue("Could note delete retrieved file", new File(tmpDir, file1).delete());
-			assertTrue("Could note delete retrieved file", new File(tmpDir, file2).delete());
+			//Clean up the retrieved files after the test
+			boolean deletedFile1 = new File(tmpDir, file1).delete();
+			boolean deletedFile2 = new File(tmpDir, file2).delete();
+
+			assertTrue("Could not delete retrieved file " + file1, deletedFile1);
+			assertTrue("Could not delete retrieved file " + file2, deletedFile2);
 		}
 	}
 

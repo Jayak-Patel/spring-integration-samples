@@ -72,7 +72,9 @@ public class DynamicTcpClientApplication {
 		} else {
 			LOGGER.error("outputChannel bean is null, cannot receive messages.");
 		}
-		context.close();
+		if (context != null) {
+			context.close();
+		}
 	}
 
 	// Client side
@@ -164,8 +166,8 @@ public class DynamicTcpClientApplication {
 		}
 
 		private MessageChannel createNewSubflow(Message<?> message) {
-			String host = (String) message.getHeaders().get("host");
-			Integer port = (Integer) message.getHeaders().get("port");
+			String host = message.getHeaders().get("host", String.class);
+			Integer port = message.getHeaders().get("port", Integer.class);
 			Assert.state(host != null && port != null, "host and/or port header missing");
 			String hostPort = host + port;
 
@@ -173,7 +175,7 @@ public class DynamicTcpClientApplication {
 			TcpSendingMessageHandler handler = new TcpSendingMessageHandler();
 			handler.setConnectionFactory(cf);
 			// Check if the connection factory is already started before starting it.
-			if (!cf.isRunning()) {
+			if (cf != null && !cf.isRunning()) {
 				try{
 					cf.start();
 				} catch (Exception e) {

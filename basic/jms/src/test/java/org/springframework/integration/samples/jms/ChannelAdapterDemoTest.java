@@ -1,106 +1,51 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2010 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      https://www.springsource.org/spring-integration/
+ *      https://www.apache.org/licenses/LICENSE-2.0
  */
 
-package org.springframework.integration.samples.jms;
+package org.springframework.integration.sts;
 
-import java.util.Scanner;
+import org.junit.Assert;
+import org.junit.Test;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.integration.service.StringConversionService;
 
 /**
- * A simple bootstrap main() method for starting a pair of JMS Channel
- * Adapters. Text entered in the console will go through an outbound
- * JMS Channel Adapter from which it is sent to a JMS Destination.
- * An inbound JMS Channel Adapter is listening to that same JMS
- * Destination and will echo the result in the console.
- * <p>
- * See the configuration in the three XML files that are referenced below.
- *
- * @author Mark Fisher
- * @author Gunnar Hillert
- * @author Gary Russell
+ * Verify that the Spring Integration Application Context starts successfully.
  */
-class Main {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+class StringConversionServiceTest {
 
-	private final static String[] configFilesGatewayDemo = {
-		"/META-INF/spring/integration/common.xml",
-		"/META-INF/spring/integration/inboundGateway.xml",
-		"/META-INF/spring/integration/outboundGateway.xml"
-	};
+    @Test
+    void testStartupOfSpringIntegrationContext() throws Exception{
+        final ApplicationContext context
+            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+                                                  StringConversionServiceTest.class);
+		Assert.assertNotNull(context);
+        Thread.sleep(2000);
+		Assert.assertTrue(context.containsBean("stringConversionService"));
+    }
 
-	private final static String[] configFilesChannelAdapterDemo = {
-		"/META-INF/spring/integration/common.xml",
-		"/META-INF/spring/integration/inboundChannelAdapter.xml",
-		"/META-INF/spring/integration/outboundChannelAdapter.xml"
-	};
+    @Test
+    void testConvertStringToUpperCase() {
+        final ApplicationContext context
+            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+                                                  StringConversionServiceTest.class);
 
-	private final static String[] configFilesAggregationDemo = {
-		"/META-INF/spring/integration/common.xml",
-		"/META-INF/spring/integration/aggregation.xml"
-	};
+        final StringConversionService service = context.getBean(StringConversionService.class);
 
-	public static void main(String[] args) {
+        final String stringToConvert = "I love Spring Integration";
+        final String expectedResult  = "I LOVE SPRING INTEGRATION";
 
-		final Scanner scanner = new Scanner(System.in);
-
-		LOGGER.info("""
-
-				=========================================================
-				                                                         
-				    Welcome to the Spring Integration JMS Sample!        
-				                                                         
-				    For more information please visit:                   
-				    https://www.springsource.org/spring-integration/                    
-				                                                         
-				=========================================================
-				""");
-
-		ActiveMqTestUtils.prepare();
-
-		LOGGER.info("\n    Which Demo would you like to run? <enter>:\n");
-		LOGGER.info("\t1. Channel Adapter Demo");
-		LOGGER.info("\t2. Gateway Demo");
-		LOGGER.info("\t3. Aggregation Demo");
-
-		while (true) {
-			final String input = scanner.nextLine();
-
-			if("1".equals(input.trim())) {
-				LOGGER.info("    Loading Channel Adapter Demo...");
-				new ClassPathXmlApplicationContext(configFilesChannelAdapterDemo, Main.class);
-				break;
-			}
-			else if("2".equals(input.trim())) {
-				LOGGER.info("    Loading Gateway Demo...");
-				new ClassPathXmlApplicationContext(configFilesGatewayDemo, Main.class);
-				break;
-			}
-			else if("3".equals(input.trim())) {
-				LOGGER.info("    Loading Aggregation Demo...");
-				new ClassPathXmlApplicationContext(configFilesAggregationDemo, Main.class);
-				break;
-			}
-			else {
-				LOGGER.info("Invalid choice\n\n");
-				LOGGER.info("Enter you choice: ");
-			}
-
-		}
-
-		LOGGER.info("    Please type something and hit <enter>\n");
-		scanner.close();
-
-	}
+        Assert.assertEquals("Expecting that the string is converted to upper case.",
+                expectedResult, service.convertToUpperCase(stringToConvert));
+    }
 
 }

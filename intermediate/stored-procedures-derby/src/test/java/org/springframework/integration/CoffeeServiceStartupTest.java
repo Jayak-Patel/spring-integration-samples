@@ -10,6 +10,7 @@
 
 package org.springframework.integration;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -30,6 +31,7 @@ public class CoffeeServiceStartupTest {
         Thread.sleep(2000);
 		assertNotNull(context.getBean("integrationEvaluationContextInitializer"));
 		assertTrue(context.containsBean("coffeeAggregator"));
+		assertEquals(10, context.getBeanDefinitionCount()); //Added assertion to verify a bean count
     }
 
 }

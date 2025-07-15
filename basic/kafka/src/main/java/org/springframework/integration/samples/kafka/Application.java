@@ -55,8 +55,8 @@ public class Application {
 		return new DirectChannel();
 	}
 
-	@Bean
 	@ServiceActivator(inputChannel = "toKafka")
+	@Bean
 	public KafkaMessageProducer kafkaMessageProducer() {
 		KafkaMessageProducer producer = new KafkaMessageProducer();
 		producer.setTopicExpression(PARSER.parseExpression("'" + this.topic + "'"));
@@ -109,13 +109,11 @@ public class Application {
 		return factory;
 	}
 
-	@Bean
 	@ServiceActivator(inputChannel = "fromKafka")
+	@Bean
 	public MessageHandler handler() {
 		return message -> {
-			if (LOGGER.isInfoEnabled()) {
-				LOGGER.info(message.getPayload().toString());
-			}
+			LOGGER.info("Received message: {}", message.getPayload());
 		};
 	}
 

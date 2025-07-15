@@ -49,9 +49,13 @@ public class TcpWithHeadersApplication {
 	}
 
 	@Bean
-	IntegrationFlow client(@Value("${tcp.port:1234}") int port) {
+	IntegrationFlow client(@Value("${tcp.port:1234}") int port,
+							@Value("${tcp.host:localhost}") String host,
+							@Value("${tcp.client.connection.factory.name:tcpClientCF}") String clientConnectionFactoryName) {
+
 		return IntegrationFlow.from(TcpExchanger.class)
-				.handle(Tcp.outboundGateway(Tcp.netClient("localhost", port)
+				.handle(Tcp.outboundGateway(Tcp.netClient(host, port)
+						.id(clientConnectionFactoryName)
 						.deserializer(jsonMapping())
 						.serializer(jsonMapping())
 						.mapper(mapper())))

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2010 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -7,76 +7,45 @@
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
  */
-package org.springframework.integration.samples.advice;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+package org.springframework.integration.sts;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.net.ftp.FTPFile;
+import org.junit.Assert;
+import org.junit.Test;
 
-import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.endpoint.SourcePollingChannelAdapter;
-import org.springframework.integration.file.remote.session.Session;
-import org.springframework.integration.file.remote.session.SessionFactory;
+import org.springframework.integration.service.StringConversionService;
 
 /**
- * @author Gary Russell
- * @since 2.2
- *
+ * Verify that the Spring Integration Application Context starts successfully.
  */
-public class FileTransferDeleteAfterSuccessDemo {
 
-	private static final Log LOGGER = LogFactory.getLog(FileTransferDeleteAfterSuccessDemo.class);
+class StringConversionServiceTest {
 
-	public static void main(String[] args) throws Exception {
-		LOGGER.info("""
+    @Test
+    void testStartupOfSpringIntegrationContext() throws Exception{
+        final ApplicationContext context
+            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+                                                  StringConversionServiceTest.class);
+		Assert.assertNotNull(context);
+        Thread.sleep(2000);
+		Assert.assertTrue(context.containsBean("stringConversionService"));
+    }
 
-				=========================================================
-				                                                         
-				          Welcome to Spring Integration!                 
-				                                                         
-				    For more information please visit:                   
-				    https://www.springsource.org/spring-integration       
-				                                                         
-				=========================================================
-				""");
+    @Test
+    void testConvertStringToUpperCase() {
+        final ApplicationContext context
+            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+                                                  StringConversionServiceTest.class);
 
-		final AbstractApplicationContext context =
-				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/expression-advice-context.xml");
+        final StringConversionService service = context.getBean(StringConversionService.class);
 
-		context.registerShutdownHook();
+        final String stringToConvert = "I love Spring Integration";
+        final String expectedResult  = "I LOVE SPRING INTEGRATION";
 
-		@SuppressWarnings("unchecked")
-		SessionFactory<FTPFile> sessionFactory = context.getBean(SessionFactory.class);
-		SourcePollingChannelAdapter fileInbound = context.getBean(SourcePollingChannelAdapter.class);
+        Assert.assertEquals("Expecting that the string is converted to upper case.",
+                expectedResult, service.convertToUpperCase(stringToConvert));
+    }
 
-		@SuppressWarnings("unchecked")
-		Session<FTPFile> session = mock(Session.class);
-		when(sessionFactory.getSession()).thenReturn(session);
-		fileInbound.start();
-
-		LOGGER.info("""
-
-				=========================================================
-				                                                          
-				    This is the Expression Advice Sample -
-				                                                          
-				    Please press 'Enter' to terminate.
-				                                                          
-				    Place a file in ${java.io.tmpdir}/adviceDemo ending
-				    with .txt
-				    The demo simulates a file transfer followed by the
-				    Advice deleting the file; the result of the deletion
-				    is logged.
-				                                                          
-				=========================================================
-				""");
-
-		System.in.read();
-		context.close();
-		System.exit(0);
-	}
 }

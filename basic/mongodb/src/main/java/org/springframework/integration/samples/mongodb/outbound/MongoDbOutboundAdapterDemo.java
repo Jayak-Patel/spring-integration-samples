@@ -17,6 +17,7 @@ import org.springframework.integration.samples.mongodb.domain.Person;
 import org.springframework.integration.samples.mongodb.util.DemoUtils;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.support.GenericMessage;
+
 /**
 *
 * @author Oleg Zhurakousky
@@ -49,8 +50,11 @@ public class MongoDbOutboundAdapterDemo {
 			messageChannel.send(new GenericMessage<Person>(this.createPersonB()));
 			messageChannel.send(new GenericMessage<Person>(this.createPersonC()));
 		}
+		catch (FailedToRunAdapterException e) {
+			throw e;
+		}
 		catch (Exception e) {
-			throw new DemoException("Failed to run default adapter", e);
+			throw new FailedToRunAdapterException("Failed to run default adapter due to an unexpected error", e);
 		}
 	}
 
@@ -62,8 +66,11 @@ public class MongoDbOutboundAdapterDemo {
 			MessageChannel messageChannel = context.getBean("adapterWithConverter", MessageChannel.class);
 			messageChannel.send(new GenericMessage<String>("John, Dow, Palo Alto, 3401 Hillview Ave, 94304, CA"));
 		}
+		catch (FailedToRunAdapterException e) {
+			throw e;
+		}
 		catch (Exception e) {
-			throw new DemoException("Failed to run adapter with converter", e);
+			throw new FailedToRunAdapterException("Failed to run adapter with converter due to an unexpected error", e);
 		}
 	}
 
@@ -120,6 +127,17 @@ public class MongoDbOutboundAdapterDemo {
 		}
 
 		public DemoException(String message, Throwable cause) {
+			super(message, cause);
+		}
+	}
+	@SuppressWarnings("serial")
+	public static class FailedToRunAdapterException extends Exception {
+
+		public FailedToRunAdapterException(String message) {
+			super(message);
+		}
+
+		public FailedToRunAdapterException(String message, Throwable cause) {
 			super(message, cause);
 		}
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2002-2011 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,9 +27,11 @@ public class UserServiceTest {
 	public void testStartupOfSpringIntegrationContext() throws Exception {
 		final ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
 				"/META-INF/spring/integration/spring-integration-context.xml", UserServiceTest.class);
-		Thread.sleep(2000);
+
 		assertTrue(context.containsBean("userService"));
 		assertTrue(context.isRunning());
+		assertEquals(3, context.getBeanDefinitionCount()); // Added assertion to check number of beans defined
+
 		context.close();
 	}
 

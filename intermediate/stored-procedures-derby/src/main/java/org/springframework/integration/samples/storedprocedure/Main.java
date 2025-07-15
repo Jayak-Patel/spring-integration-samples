@@ -17,6 +17,7 @@ import org.springframework.integration.samples.mongodb.domain.Person;
 import org.springframework.integration.samples.mongodb.util.DemoUtils;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.support.GenericMessage;
+
 /**
 *
 * @author Oleg Zhurakousky
@@ -50,6 +51,7 @@ public class MongoDbOutboundAdapterDemo {
 			messageChannel.send(new GenericMessage<Person>(this.createPersonC()));
 		}
 		catch (Exception e) {
+			LOGGER.error("Failed to run default adapter", e);
 			throw new DemoException("Failed to run default adapter", e);
 		}
 	}
@@ -63,6 +65,7 @@ public class MongoDbOutboundAdapterDemo {
 			messageChannel.send(new GenericMessage<String>("John, Dow, Palo Alto, 3401 Hillview Ave, 94304, CA"));
 		}
 		catch (Exception e) {
+			LOGGER.error("Failed to run adapter with converter", e);
 			throw new DemoException("Failed to run adapter with converter", e);
 		}
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2010 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -7,58 +7,45 @@
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
  */
-package org.springframework.integration.samples.advice;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+package org.springframework.integration.sts;
 
-import org.springframework.context.support.AbstractApplicationContext;
+import org.junit.Assert;
+import org.junit.Test;
+
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.integration.service.StringConversionService;
 
 /**
- * @author Gary Russell
- * @since 2.2
- *
+ * Verify that the Spring Integration Application Context starts successfully.
  */
-public class CircuitBreakerDemo {
 
-	private static final Log LOGGER = LogFactory.getLog(CircuitBreakerDemo.class);
+class StringConversionServiceTest {
 
-	public static void main(String[] args) throws Exception {
-		LOGGER.info("""
+    @Test
+    void testStartupOfSpringIntegrationContext() throws Exception{
+        final ApplicationContext context
+            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+                                                  StringConversionServiceTest.class);
+		Assert.assertNotNull(context);
+        Thread.sleep(2000);
+		Assert.assertTrue(context.containsBean("stringConversionService"));
+    }
 
-				=========================================================
-				                                                         
-				          Welcome to Spring Integration!                 
-				                                                         
-				    For more information please visit:                   
-				    https://www.springsource.org/spring-integration       
-				                                                         
-				=========================================================
-				""");
+    @Test
+    void testConvertStringToUpperCase() {
+        final ApplicationContext context
+            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+                                                  StringConversionServiceTest.class);
 
-		final AbstractApplicationContext context =
-				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/circuit-breaker-advice-context.xml");
+        final StringConversionService service = context.getBean(StringConversionService.class);
 
-		context.registerShutdownHook();
+        final String stringToConvert = "I love Spring Integration";
+        final String expectedResult  = "I LOVE SPRING INTEGRATION";
 
-		LOGGER.info("""
-
-				=========================================================
-				                                                          
-				    This is the Circuit Breaker Sample -
-				                                                          
-				    Please enter some text and press return a few times.
-				    Service will succeed only in the last quarter
-				    minute. Breaker will open after 2 failures and
-				    will go half-open after 15 seconds.
-				    Demo will terminate in 2 minutes.
-				                                                          
-				=========================================================
-				""");
-
-		Thread.sleep(120000);
-		context.close();
-	}
+        Assert.assertEquals("Expecting that the string is converted to upper case.",
+                expectedResult, service.convertToUpperCase(stringToConvert));
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 the original author or authors.
+ * Copyright 2002-2010 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -8,145 +8,44 @@
  *      https://www.apache.org/licenses/LICENSE-2.0
  */
 
-package org.springframework.integration.samples.dsl.cafe.lambda;
+package org.springframework.integration.sts;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
+import org.junit.Assert;
+import org.junit.Test;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.integration.annotation.Gateway;
-import org.springframework.integration.annotation.MessagingGateway;
-import org.springframework.integration.dsl.IntegrationFlow;
-import org.springframework.integration.dsl.PollerSpec;
-import org.springframework.integration.dsl.Pollers;
-import org.springframework.integration.samples.cafe.Delivery;
-import org.springframework.integration.samples.cafe.Drink;
-import org.springframework.integration.samples.cafe.DrinkType;
-import org.springframework.integration.samples.cafe.Order;
-import org.springframework.integration.samples.cafe.OrderItem;
-import org.springframework.integration.scheduling.PollerMetadata;
-import org.springframework.integration.stream.CharacterStreamWritingMessageHandler;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.integration.service.StringConversionService;
 
 /**
- * @author Artem Bilan
- * @since 3.0
+ * Verify that the Spring Integration Application Context starts successfully.
  */
-@SpringBootApplication
-public class Application {
 
-	private static final Log LOGGER = LogFactory.getLog(Application.class);
+class StringConversionServiceTest {
 
-	public static void main(String[] args) throws Exception {
-		ConfigurableApplicationContext ctx = SpringApplication.run(Application.class, args);
+    @Test
+    void testStartupOfSpringIntegrationContext() throws Exception{
+        final ApplicationContext context
+            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+                                                  StringConversionServiceTest.class);
+		Assert.assertNotNull(context);
+        Thread.sleep(2000);
+		Assert.assertTrue(context.containsBean("stringConversionService"));
+    }
 
-		Cafe cafe = ctx.getBean(Cafe.class);
-		for (int i = 1; i <= 100; i++) {
-			Order order = new Order(i);
-			order.addItem(DrinkType.LATTE, 2, false);
-			order.addItem(DrinkType.MOCHA, 3, true);
-			cafe.placeOrder(order);
-		}
+    @Test
+    void testConvertStringToUpperCase() {
+        final ApplicationContext context
+            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+                                                  StringConversionServiceTest.class);
 
-		LOGGER.info("Hit 'Enter' to terminate");
-		try {
-			System.in.read();
-		} catch (IOException e) {
-			LOGGER.error("Error reading input", e);
-		}
-		ctx.close();
-	}
+        final StringConversionService service = context.getBean(StringConversionService.class);
 
-	@MessagingGateway
-	public interface Cafe {
+        final String stringToConvert = "I love Spring Integration";
+        final String expectedResult  = "I LOVE SPRING INTEGRATION";
 
-		@Gateway(requestChannel = "orders.input")
-		void placeOrder(Order order);
-
-	}
-
-	private final AtomicInteger hotDrinkCounter = new AtomicInteger();
-
-	private final AtomicInteger coldDrinkCounter = new AtomicInteger();
-
-	@Bean(name = PollerMetadata.DEFAULT_POLLER)
-	public PollerSpec poller() {
-		return Pollers.fixedDelay(1000);
-	}
-
-	@Bean
-	public IntegrationFlow orders() {
-		return f -> f
-				.split(Order.class, Order::getItems)
-				.channel(c -> c.executor(Executors.newCachedThreadPool()))
-				.<OrderItem, Boolean>route(OrderItem::isIced, mapping -> mapping
-						.subFlowMapping(true, sf -> sf
-								.channel(c -> c.queue(10))
-								.publishSubscribeChannel(c -> c
-										.subscribe(s -> s.handle(m -> sleepUninterruptibly(1, TimeUnit.SECONDS)))
-										.subscribe(sub -> sub
-												.<OrderItem, String>transform(p ->
-														Thread.currentThread().getName() +
-																" prepared cold drink #" +
-																this.coldDrinkCounter.incrementAndGet() +
-																" for order #" + p.getOrderNumber() + ": " + p)
-												.handle(m -> {
-													if (LOGGER.isInfoEnabled()) {
-														LOGGER.info(m.getPayload().toString());
-													}
-												})))
-								.bridge())
-						.subFlowMapping(false, sf -> sf
-								.channel(c -> c.queue(10))
-								.publishSubscribeChannel(c -> c
-										.subscribe(s -> s.handle(m -> sleepUninterruptibly(5, TimeUnit.SECONDS)))
-										.subscribe(sub -> sub
-												.<OrderItem, String>transform(p ->
-														Thread.currentThread().getName() +
-																" prepared hot drink #" +
-																this.hotDrinkCounter.incrementAndGet() +
-																" for order #" + p.getOrderNumber() + ": " + p)
-												.handle(m -> {
-													if (LOGGER.isInfoEnabled()) {
-														LOGGER.info(m.getPayload().toString());
-													}
-												})))
-								.bridge()))
-				.<OrderItem, Drink>transform(orderItem ->
-						new Drink(orderItem.getOrderNumber(),
-								orderItem.getDrinkType(),
-								orderItem.isIced(),
-								orderItem.getShots()))
-				.aggregate(aggregator -> aggregator
-						.outputProcessor(g ->
-								new Delivery(g.getMessages()
-										.stream()
-										.map(message -> (Drink) message.getPayload())
-										.collect(Collectors.toList())))
-						.correlationStrategy(m -> ((Drink) m.getPayload()).getOrderNumber()))
-				.handle(CharacterStreamWritingMessageHandler.stdout());
-	}
-
-	private static void sleepUninterruptibly(long sleepFor, TimeUnit unit) {
-		boolean interrupted = false;
-		try {
-			unit.sleep(sleepFor);
-		}
-		catch (InterruptedException e) {
-			interrupted = true;
-		}
-		finally {
-			if (interrupted) {
-				Thread.currentThread().interrupt();
-			}
-		}
-	}
+        Assert.assertEquals("Expecting that the string is converted to upper case.",
+                expectedResult, service.convertToUpperCase(stringToConvert));
+    }
 
 }

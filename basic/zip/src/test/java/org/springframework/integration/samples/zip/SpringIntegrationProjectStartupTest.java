@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.integration.core.MessagingTemplate;
 
 /**
  * Verify that the Spring Integration Application Context starts successfully.
@@ -28,14 +29,20 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 class SpringIntegrationProjectStartupTest {
 
 	@Test
-	void testStartupOfSpringIntegrationContext() throws Exception{
-		try(ConfigurableApplicationContext context
-			= new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-												   getClass())) {
+	void testStartupOfSpringIntegrationContext() throws Exception {
+		try (ConfigurableApplicationContext context =
+					 new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+														  getClass())) {
 			SpringIntegrationUtils.displayDirectories(context);
 			assertThat(context.isRunning()).isTrue();
 			assertThat(context.getBeanDefinitionCount()).isGreaterThan(0);
 			assertThat(context.containsBean("zipTransformer")).isTrue();
+
+			MessagingTemplate messagingTemplate = context.getBean("messagingTemplate", MessagingTemplate.class);
+			assertThat(messagingTemplate).isNotNull(); // Added assertion
+
+			assertThat(context.isActive()).isTrue(); //Assert that the context is active
+
 		}
 	}
 

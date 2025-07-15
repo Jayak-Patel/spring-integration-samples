@@ -13,6 +13,7 @@ import java.util.Scanner;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.junit.Assert;
 
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -83,6 +84,9 @@ public final class Main {
 
 			LOGGER.info(String.format("Converted '%s' - End Result: '%s_%s'.", input, inputUpperCase, number));
 			LOGGER.info("To try again, please enter a string and press <enter>:");
+
+			// Adding an assertion to validate the service's response
+			Assert.assertNotNull(number, "The number retrieved from service should not be null");
 		}
 
 		LOGGER.info("Exiting application...bye.");

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2010 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -8,75 +8,44 @@
  *      https://www.apache.org/licenses/LICENSE-2.0
  */
 
-package org.springframework.integration.samples.jms;
+package org.springframework.integration.sts;
 
-import java.util.List;
-import java.util.Map;
+import org.junit.Assert;
+import org.junit.Test;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
-import org.springframework.context.support.GenericXmlApplicationContext;
-import org.springframework.integration.channel.QueueChannel;
-import org.springframework.integration.support.MessageBuilder;
-import org.springframework.jms.listener.DefaultMessageListenerContainer;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageChannel;
-import org.springframework.util.backoff.FixedBackOff;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.integration.service.StringConversionService;
 
 /**
- * @author Gunnar Hillert
- * @author Gary Russell
- * @author Artem Bilan
+ * Verify that the Spring Integration Application Context starts successfully.
  */
-class AggregatorDemoTest extends ActiveMQMultiContextTests {
 
-	private static final String[] configFilesGatewayDemo = {
-		"/META-INF/spring/integration/common.xml",
-		"/META-INF/spring/integration/aggregation.xml"
-	};
+class StringConversionServiceTest {
 
-	@Test
-	void testGatewayDemo() {
+    @Test
+    void testStartupOfSpringIntegrationContext() throws Exception{
+        final ApplicationContext context
+            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+                                                  StringConversionServiceTest.class);
+		Assert.assertNotNull(context);
+        Thread.sleep(2000);
+		Assert.assertTrue(context.containsBean("stringConversionService"));
+    }
 
-		System.setProperty("spring.profiles.active", "testCase");
+    @Test
+    void testConvertStringToUpperCase() {
+        final ApplicationContext context
+            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
+                                                  StringConversionServiceTest.class);
 
-		final GenericXmlApplicationContext applicationContext = new GenericXmlApplicationContext(
-				configFilesGatewayDemo);
-		Map<String, DefaultMessageListenerContainer> containers = applicationContext
-				.getBeansOfType(DefaultMessageListenerContainer.class);
-		// wait for containers to subscribe before sending a message.
-		containers.values().forEach(c -> {
-			FixedBackOff backOff = new FixedBackOff(100, 100);
-			int n = 0;
-			while (n++ < 100 && !c.isRegisteredWithDestination()) {
-				try {
-					backOff.backOff();
-				}
-				catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-					break;
-				}
-			}
-			if (!c.isRegisteredWithDestination()) {
-				throw new IllegalStateException("Container failed to subscribe to topic");
-			}
-		});
+        final StringConversionService service = context.getBean(StringConversionService.class);
 
-		final MessageChannel stdinToJmsOutChannel = applicationContext.getBean("stdinToJmsOutChannel", MessageChannel.class);
+        final String stringToConvert = "I love Spring Integration";
+        final String expectedResult  = "I LOVE SPRING INTEGRATION";
 
-		stdinToJmsOutChannel.send(MessageBuilder.withPayload("jms test").build());
-
-		final QueueChannel queueChannel = applicationContext.getBean("queueChannel", QueueChannel.class);
-
-		@SuppressWarnings("unchecked")
-		Message<List<String>> reply = (Message<List<String>>) queueChannel.receive(20_000);
-		Assertions.assertNotNull(reply);
-		List<String> out = reply.getPayload();
-
-		Assertions.assertEquals("[JMS TEST, JMS TEST]", out.toString());
-
-		applicationContext.close();
-	}
+        Assert.assertEquals("Expecting that the string is converted to upper case.",
+                expectedResult, service.convertToUpperCase(stringToConvert));
+    }
 
 }

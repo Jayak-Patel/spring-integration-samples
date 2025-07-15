@@ -31,6 +31,8 @@ public class StringConversionServiceTest {
 		Assert.assertNotNull(context);
         Thread.sleep(2000);
 		Assert.assertTrue(context.containsBean("stringConversionService"));
+		Assert.assertTrue(context.containsBean("dataSource")); // added assertion
+
     }
 
     @Test

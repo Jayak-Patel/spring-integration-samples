@@ -1,7 +1,7 @@
 /*
  * Copyright 2002-2017 the original author or authors.
  *
- * Licensed under the Apache License, Version 20 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -61,7 +61,7 @@ public final class EmailParserUtils {
 	 * to {@link #handleMultipart(File, Multipart, List)}.
 	 *
 	 * @param directory The directory for storing the message. If null this is the root message.
-	 * @param mailMessage The mail message to be parsed. Must not be null.
+	 * @param mailMessage The mailMessage to be parsed. Must not be null.
 	 * @param emailFragments Must not be null.
 	 */
 	public static void handleMessage(final File directory,
@@ -90,12 +90,10 @@ public final class EmailParserUtils {
 	private static void processContent(File directoryToUse, Object content, jakarta.mail.Message mailMessage, List<EmailFragment> emailFragments) throws MessagingException {
 		try {
 			if (content instanceof String) {
-				// Do not log the content, as it might contain sensitive information.
-				// Instead, log a message indicating that the content is being skipped for security reasons.
-				if (LOGGER.isDebugEnabled()) {
-					LOGGER.debug("Skipping logging of content for file '{}' due to potential security concerns.", mailMessage.getSubject());
-				}
 				emailFragments.add(new EmailFragment(new File(mailMessage.getSubject()), "message.txt", content));
+				if (LOGGER.isDebugEnabled()) {
+					LOGGER.debug("Handling text content for file '{}'.", mailMessage.getSubject());
+				}
 			}
 			else if (content instanceof Multipart) {
 				handleMultipart(directoryToUse, (Multipart) content, emailFragments);
@@ -139,7 +137,7 @@ public final class EmailParserUtils {
 			int count = multipart.getCount();
 
 			if (LOGGER.isInfoEnabled()) {
-				LOGGER.info(String.format("Number of enclosed BodyPart objects: %s.", count));
+				LOGGER.info("Number of enclosed BodyPart objects: {}.", count);
 			}
 
 			for (int i = 0; i < count; i++) {
@@ -149,7 +147,7 @@ public final class EmailParserUtils {
 
 		}
 		catch (MessagingException e) {
-			LOGGER.error("Error while retrieving the number of enclosed BodyPart objects: " + e.getMessage());
+			LOGGER.error("Error while retrieving the number of enclosed BodyPart objects: {}.", e.getMessage());
 			throw new IllegalStateException("Error while retrieving the number of enclosed BodyPart objects.", e);
 		}
 	}
@@ -165,8 +163,14 @@ public final class EmailParserUtils {
 			}
 
 			if (LOGGER.isInfoEnabled()) {
-				LOGGER.info("BodyPart - Content Type: {}, filename: {}, disposition: {}",
-						contentType, filename, disposition);
+				StringBuilder sb = new StringBuilder();
+				sb.append("BodyPart - Content Type: ");
+				sb.append(contentType);
+				sb.append(", filename: ");
+				sb.append(filename);
+				sb.append(", disposition: ");
+				sb.append(disposition);
+				LOGGER.info(sb.toString());
 			}
 
 			if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
@@ -252,6 +256,10 @@ public final class EmailParserUtils {
 			IOUtils.copy(contentAsInputStream, bis);
 
 			emailFragments.add(new EmailFragment(directory, filename, bis.toByteArray()));
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Handling input stream content for file '{}'.", filename);
+			}
+
 		} catch (IOException e) {
 			LOGGER.error("Error while processing input stream content.");
 			if (LOGGER.isDebugEnabled()) {

@@ -34,7 +34,7 @@ class StringConversionServiceTest {
     }
 
     @Test
-    public void testConvertStringToUpperCase() {
+    void testConvertStringToUpperCase() {
         final ApplicationContext context
             = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
                                                   StringConversionServiceTest.class);
@@ -44,10 +44,8 @@ class StringConversionServiceTest {
         final String stringToConvert = "I love Spring Integration";
         final String expectedResult  = "I LOVE SPRING INTEGRATION";
 
-
         Assert.assertEquals("Expecting that the string is converted to upper case.",
                 expectedResult, service.convertToUpperCase(stringToConvert));
-
     }
 
 }
