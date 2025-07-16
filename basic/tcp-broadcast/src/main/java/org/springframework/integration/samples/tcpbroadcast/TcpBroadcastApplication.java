@@ -1,51 +1,117 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2014-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      https://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package org.springframework.integration.sts;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.net.Socket;
 
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.service.StringConversionService;
+import org.junit.AssumptionViolatedException;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Verify that the Spring Integration Application Context starts successfully.
+ * JUnit @Rule that checks that a port is available.
+ *
+ * @author Gary Russell
+ * @since 4.0
+ *
  */
+public class BrokerRunning extends TestWatcher {
 
-class StringConversionServiceTest {
+	private static final Logger logger = LoggerFactory.getLogger(BrokerRunning.class);
 
-    @Test
-    void testStartupOfSpringIntegrationContext() throws Exception{
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
-		Assert.assertNotNull(context);
-        Thread.sleep(2000);
-		Assert.assertTrue(context.containsBean("stringConversionService"));
-    }
+	private final int port;
 
-    @Test
-    void testConvertStringToUpperCase() {
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
+	private final boolean verify;
 
-        final StringConversionService service = context.getBean(StringConversionService.class);
+	private BrokerRunning(int port, boolean verify) {
+		this.port = port;
+		this.verify = verify;
+	}
 
-        final String stringToConvert = "I love Spring Integration";
-        final String expectedResult  = "I LOVE SPRING INTEGRATION";
+	/**
+	 * @param port The port.
+	 * @return The rule.
+	 */
+	public static BrokerRunning isRunning(int port) {
+		return new BrokerRunning(port, true);
+	}
 
-        Assert.assertEquals("Expecting that the string is converted to upper case.",
-                expectedResult, service.convertToUpperCase(stringToConvert));
-    }
+	/**
+	 * Do not verify broker actually running.
+	 * @param port The port.
+	 * @return The rule.
+	 */
+	public static BrokerRunning isAvailable(int port) {
+		return new BrokerRunning(port, false);
+	}
+
+	@Override
+	protected void starting(Description description) {
+		boolean brokerRunning = checkBrokerRunning();
+		if (!brokerRunning) {
+			throw new AssumptionViolatedException("Broker not running at port " + port);
+		}
+		if (brokerRunning && this.verify) {
+			try {
+				// Verify broker is actually running.  Replace with actual broker check.
+			}
+			catch (Exception e) {
+				throw new AssumptionViolatedException("Broker not running at port " + port);
+			}
+		}
+	}
+
+	private boolean checkBrokerRunning() {
+		Socket socket = null;
+		try {
+			socket = new Socket("localhost", port);
+			return true;
+		}
+		catch (Exception e) {
+			if (logger.isDebugEnabled()) {
+				logger.debug("Exception while checking broker", e);
+			}
+			return false;
+		}
+		finally {
+			if (socket != null) {
+				try {
+					socket.close();
+				}
+				catch (Exception e) {
+					if (logger.isDebugEnabled()) {
+						logger.debug("Exception while closing socket", e);
+					}
+				}
+			}
+		}
+	}
+
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target({ ElementType.METHOD, ElementType.TYPE })
+	public @interface RequiresBrokerRunning {
+
+		int port() default 1883;
+
+	}
 
 }

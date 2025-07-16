@@ -1,49 +1,104 @@
-/*
- * Copyright 2015 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- */
+package org.springframework.integration.sts;
 
-package org.springframework.integration.samples.zip;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Types;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import org.junit.jupiter.api.Test;
-
-import org.springframework.context.ConfigurableApplicationContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.core.MessagingTemplate;
+import org.springframework.dao.DataAccessException;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.SqlParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcCall;
+import org.springframework.messaging.Message;
+
+import javax.sql.DataSource;
+
+import org.junit.Assert;
 
 /**
- * Verify that the Spring Integration Application Context starts successfully.
  *
  * @author Gunnar Hillert
- * @author Artem Bilan
+ * @since 2.2
  *
- * @since 6.4
  */
-class SpringIntegrationProjectStartupTest {
+public final class Main {
 
-	@Test
-	void testStartupOfSpringIntegrationContext() throws Exception {
-		try (ConfigurableApplicationContext context =
-					 new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-														  getClass())) {
-			SpringIntegrationUtils.displayDirectories(context);
-			assertThat(context.isRunning()).isTrue();
-			assertThat(context.getBeanDefinitionCount()).isGreaterThan(0);
-			assertThat(context.containsBean("zipTransformer")).isTrue();
+	private static final Logger LOGGER = LogManager.getLogger();
 
-			MessagingTemplate messagingTemplate = context.getBean("messagingTemplate", MessagingTemplate.class);
-			assertThat(messagingTemplate).isNotNull(); // Added assertion
+	private Main() { }
 
-			assertThat(context.isActive()).isTrue(); //Assert that the context is active
+	/**
+	 * Load the Spring Integration context and start the process.
+	 */
+	static void main(final String... args) {
 
+		StringBuilder welcomeMessage = new StringBuilder();
+		welcomeMessage.append("\n=========================================================\n");
+		welcomeMessage.append("                                                         \n");
+		welcomeMessage.append("          Welcome to the Stored Procedure Sample!           \n");
+		welcomeMessage.append("                                                         \n");
+		welcomeMessage.append("    This sample demonstrates how to call four different    \n");
+		welcomeMessage.append("    stored procedures:                                      \n");
+		welcomeMessage.append("                                                         \n");
+		welcomeMessage.append("        1. A Simple Stored Procedure Call                 \n");
+		welcomeMessage.append("        2. A Stored Procedure Output Parameter              \n");
+		welcomeMessage.append("        3. A Stored Procedure Returning a ResultSet         \n");
+		welcomeMessage.append("        4. A Stored Procedure with a Poller               \n");
+		welcomeMessage.append("                                                         \n");
+		welcomeMessage.append("=========================================================\n");
+
+		LOGGER.info(welcomeMessage.toString());
+
+		final AbstractApplicationContext context =
+				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/*-context.xml");
+
+		context.registerShutdownHook();
+
+		final StoredProcedureTest storedProcedureTest = (StoredProcedureTest) context.getBean("storedProcedureTest");
+
+		storedProcedureTest.runStoredProcedureTests();
+
+		LOGGER.info("Hit 'Enter' to terminate");
+
+		final CountDownLatch latch = new CountDownLatch(1);
+
+		Thread terminateThread = new Thread(() -> {
+			try {
+				System.in.read();
+				latch.countDown();
+			}
+			catch (final IOException e) {
+				LOGGER.error("Exception details: {}" , e.getMessage(), e); //added message argument
+			}
+		});
+
+		terminateThread.start();
+		boolean terminated = false;
+		try {
+			terminated = latch.await(60, TimeUnit.SECONDS); // Timeout after 60 seconds if no Enter key is pressed
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			LOGGER.error("Interrupted while waiting for termination", e);
 		}
+
+		Assert.assertTrue("Application terminated", terminated);
+
+		LOGGER.info("Exiting application. Shutting down context.");
+		context.close();
+
 	}
 
 }

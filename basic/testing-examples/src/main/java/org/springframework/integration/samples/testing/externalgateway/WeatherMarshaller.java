@@ -1,144 +1,97 @@
-/*
- * Copyright 2019 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- */
+package org.springframework.integration.sts;
 
-package org.springframework.integration.samples.tcpheaders;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-import java.util.Scanner;
+import javax.xml.transform.Source;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamSource;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.integration.dsl.IntegrationFlow;
-import org.springframework.integration.handler.LoggingHandler.Level;
-import org.springframework.integration.ip.dsl.Tcp;
-import org.springframework.integration.ip.tcp.connection.MessageConvertingTcpMessageMapper;
-import org.springframework.integration.ip.tcp.serializer.MapJsonSerializer;
-import org.springframework.integration.support.converter.MapMessageConverter;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.util.StringUtils;
+import org.springframework.integration.support.AbstractIntegrationMessageBuilder;
+import org.springframework.messaging.Message;
+import org.springframework.oxm.Marshaller;
+import org.springframework.oxm.Unmarshaller;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+import org.w3c.dom.Element;
 
-@SpringBootApplication
-public class TcpWithHeadersApplication {
+/**
+ * Demonstrates a marshaller/unmarshaller being used to externalize
+ * information about weather forecasts for use in an integration flow.
+ *
+ * @author Gary Russell
+ * @since 4.0
+ */
+@Component
+public class WeatherMarshaller {
 
-	private static final Log LOGGER = LogFactory.getLog(TcpWithHeadersApplication.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(WeatherMarshaller.class);
 
-	public static void main(String[] args) {
-		SpringApplication.run(TcpWithHeadersApplication.class, args);
-	}
+	@Value("${yahoo.weather.uri:http://weather.yahooapis.com/forecastrss?w={code}&u=c}")
+	private String yahooUri;
 
-	// Client side
+	@Autowired
+	private RestTemplate restTemplate;
 
-	interface TcpExchanger {
+	@Autowired
+	@Qualifier("weatherMarshaller")
+	private Marshaller marshaller;
 
-		String exchange(String data, @Header("type") String type);
+	@Autowired
+	@Qualifier("weatherMarshaller")
+	private Unmarshaller unmarshaller;
 
-	}
-
-	@Bean
-	IntegrationFlow client(@Value("${tcp.port:1234}") int port,
-							@Value("${tcp.host:localhost}") String host,
-							@Value("${tcp.client.connection.factory.name:tcpClientCF}") String clientConnectionFactoryName) {
-
-		return IntegrationFlow.from(TcpExchanger.class)
-				.handle(Tcp.outboundGateway(Tcp.netClient(host, port)
-						.id(clientConnectionFactoryName)
-						.deserializer(jsonMapping())
-						.serializer(jsonMapping())
-						.mapper(mapper())))
-				.get();
-	}
-
-	// Server side
-
-	@Bean
-	IntegrationFlow server(@Value("${tcp.port:1234}") int port) {
-		return IntegrationFlow.from(Tcp.inboundGateway(Tcp.netServer(port)
-						.deserializer(jsonMapping())
-						.serializer(jsonMapping())
-						.mapper(mapper())))
-				.log(Level.INFO, "exampleLogger", "'Received type header:' + headers['type']")
-				.route("headers['type']", r -> r
-						.subFlowMapping("upper",
-								subFlow -> subFlow.transform(String.class, String::toUpperCase))
-						.subFlowMapping("lower",
-								subFlow -> subFlow.transform(String.class, String::toLowerCase)))
-				.get();
-	}
-
-	// Common
-
-	@Bean
-	MessageConvertingTcpMessageMapper mapper() {
-		MapMessageConverter converter = new MapMessageConverter();
-		converter.setHeaderNames("type");
-		return new MessageConvertingTcpMessageMapper(converter);
-	}
-
-	@Bean
-	MapJsonSerializer jsonMapping() {
-		return new MapJsonSerializer();
-	}
-
-	// Console
-
-	@Bean
-	@DependsOn("client")
-	ApplicationRunner runner(TcpExchanger exchanger,
-			ConfigurableApplicationContext context) {
-
-		return args -> {
-			LOGGER.info("""
-					Enter some text; if it starts with a lower case character,
-					it will be upper-cased by the server; otherwise it will be lower-cased;
-					enter 'quit' to end""");
-			processInputAndCloseContext(exchanger, context);
-		};
-	}
-
-	private void processInputAndCloseContext(TcpExchanger exchanger, ConfigurableApplicationContext context) {
-		try (Scanner scanner = new Scanner(System.in)) {
-			processInput(exchanger, scanner);
+	public Element transform(String code) {
+		StreamSource source = this.restTemplate.getForObject(yahooUri, StreamSource.class, code);
+		try {
+			return (Element) this.unmarshaller.unmarshal(source);
 		}
-		finally {
-			if (context != null) {
-				context.close();
-			}
+		catch (IOException e) {
+			LOGGER.error("Failed to unmarshall", e);
+			throw new IllegalStateException("Failed to unmarshall", e);
 		}
 	}
 
-	private void processInput(TcpExchanger exchanger, Scanner scanner) {
-		String request = getNextRequest(scanner);
-		while (!"quit".equalsIgnoreCase(request)) {
-			if (StringUtils.hasText(request)) {
-				String result = exchanger.exchange(request,
-						Character.isLowerCase(request.charAt(0)) ? "upper" : "lower");
-				LOGGER.info("Result from server: " + result);
-			}
-			request = getNextRequest(scanner);
+	public AbstractIntegrationMessageBuilder<?> handleRequest(Message<?> message) {
+		String code = (String) message.getPayload();
+		StreamSource source = this.restTemplate.getForObject(yahooUri, StreamSource.class, code);
+		try {
+			Object weather = this.unmarshaller.unmarshal(source);
+			Map<String, Object> headers = new HashMap<>();
+			headers.put("code", code);
+			headers.put("xmlSource", source);
+			return MessageBuilder.withPayload(weather)
+					.copyHeaders(headers);
+		}
+		catch (IOException e) {
+			LOGGER.error("Failed to unmarshall", e);
+			throw new IllegalStateException("Failed to unmarshall", e);
 		}
 	}
 
-	private String getNextRequest(Scanner scanner) {
-		if (scanner.hasNextLine()) {
-			return scanner.nextLine();
+	public Object retransform(Source source) {
+		try {
+			return this.unmarshaller.unmarshal(source);
 		}
-		else {
-			return "quit";
+		catch (IOException e) {
+			LOGGER.error("Failed to unmarshall", e);
+			throw new IllegalStateException("Failed to unmarshall", e);
 		}
+	}
+
+	public Source transformElement(Element element) {
+		return new DOMSource(element);
+	}
+
+	public WeatherReport transformWeatherReport(WeatherReport report) {
+		return report;
 	}
 
 }

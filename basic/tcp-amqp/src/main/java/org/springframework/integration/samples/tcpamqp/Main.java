@@ -1,51 +1,42 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2012-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.springframework.integration.sts;
 
-import org.junit.Assert;
+import static org.junit.Assert.assertEquals;
+
+
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.service.StringConversionService;
+@ContextConfiguration
+@RunWith(SpringJUnit4ClassRunner.class)
+public class ChannelAdapterDemoTest {
 
-/**
- * Verify that the Spring Integration Application Context starts successfully.
- */
+	@Autowired
+	JmsTemplate jmsTemplate;
 
-class StringConversionServiceTest {
+	@Test
+	public void testJmsChannelAdapterReceivesMessage() {
 
-    @Test
-    void testStartupOfSpringIntegrationContext() throws Exception{
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
-		Assert.assertNotNull(context);
-        Thread.sleep(2000);
-		Assert.assertTrue(context.containsBean("stringConversionService"));
-    }
-
-    @Test
-    void testConvertStringToUpperCase() {
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
-
-        final StringConversionService service = context.getBean(StringConversionService.class);
-
-        final String stringToConvert = "I love Spring Integration";
-        final String expectedResult  = "I LOVE SPRING INTEGRATION";
-
-        Assert.assertEquals("Expecting that the string is converted to upper case.",
-                expectedResult, service.convertToUpperCase(stringToConvert));
-    }
-
+		Object result = jmsTemplate.receiveAndConvert("queue");
+		assertEquals("Hello from JMS", result);
+	}
 }

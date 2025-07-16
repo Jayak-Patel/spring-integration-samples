@@ -1,51 +1,65 @@
-/*
- * Copyright 2002-2010 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- */
+package org.springframework.integration.samples.mongodb.outbound;
 
-package org.springframework.integration.sts;
-
-import org.junit.Assert;
-import org.junit.Test;
-
-import org.springframework.context.ApplicationContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.service.StringConversionService;
 
 /**
- * Verify that the Spring Integration Application Context starts successfully.
+ *
+ * @author Gunnar Hillert
+ * @since 2.2
+ *
  */
+public final class MongoDbOutboundAdapterDemo {
 
-class StringConversionServiceTest {
+	private static final Logger LOGGER = LogManager.getLogger();
 
-    @Test
-    void testStartupOfSpringIntegrationContext() throws Exception{
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
-		Assert.assertNotNull(context);
-        Thread.sleep(2000);
-		Assert.assertTrue(context.containsBean("stringConversionService"));
-    }
+	private MongoDbOutboundAdapterDemo() { }
 
-    @Test
-    void testConvertStringToUpperCase() {
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
+	/**
+	 * Load the Spring Integration context and start the process.
+	 */
+	public static void main(final String... args) {
 
-        final StringConversionService service = context.getBean(StringConversionService.class);
+		LOGGER.info("\n========================================================="
+				+ "\n                                                         "
+				+ "\n          Welcome to the MongoDB Demo!                     "
+				+ "\n                                                         "
+				+ "\n    This sample demonstrates how to use the               "
+				+ "\n    MongoDB Outbound Adapter.                                "
+				+ "\n                                                         "
+				+ "\n========================================================="
+		);
 
-        final String stringToConvert = "I love Spring Integration";
-        final String expectedResult  = "I LOVE SPRING INTEGRATION";
+		final AbstractApplicationContext context =
+				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/*-context.xml");
 
-        Assert.assertEquals("Expecting that the string is converted to upper case.",
-                expectedResult, service.convertToUpperCase(stringToConvert));
-    }
+		context.registerShutdownHook();
+
+		/*final SimpleJdbcTemplate simpleJdbcTemplate = (SimpleJdbcTemplate) context.getBean("simpleJdbcTemplate");
+
+		System.out.println("\nPopulating test table ...");
+
+		simpleJdbcTemplate.update("DELETE FROM EMPLOYEES");
+
+		simpleJdbcTemplate.update("INSERT INTO EMPLOYEES (id, name, salary) VALUES (1, 'John Doe', 1000)");
+		simpleJdbcTemplate.update("INSERT INTO EMPLOYEES (id, name, salary) VALUES (2, 'Jane Doe', 2000)");
+		simpleJdbcTemplate.update("INSERT INTO EMPLOYEES (id, name, salary) VALUES (3, 'Joe Bloggs', 3000)");
+
+		System.out.println("\nCreated " +
+				simpleJdbcTemplate.queryForInt("SELECT COUNT(*) FROM EMPLOYEES") + " records.");*/
+
+		try {
+			System.in.read();
+		}
+		catch (final IOException e) {
+			System.err.println(e);
+		}
+
+		LOGGER.info("Exiting application. Shutting down context.");
+		context.close();
+
+	}
 
 }

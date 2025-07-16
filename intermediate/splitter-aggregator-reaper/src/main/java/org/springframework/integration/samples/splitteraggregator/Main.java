@@ -1,51 +1,120 @@
-/*
- * Copyright 2002-2010 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- */
-
 package org.springframework.integration.sts;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.service.StringConversionService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-/**
- * Verify that the Spring Integration Application Context starts successfully.
- */
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.integration.annotation.Gateway;
+import org.springframework.integration.annotation.MessagingGateway;
+import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.config.EnableIntegration;
+import org.springframework.integration.dsl.IntegrationFlow;
+import org.springframework.integration.expression.ValueExpression;
+import org.springframework.integration.handler.advice.ExpressionEvaluatingRequestHandlerAdvice;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.stereotype.Component;
 
-class StringConversionServiceTest {
+@Component
+public class CircuitBreakerDemo implements ApplicationRunner {
 
-    @Test
-    void testStartupOfSpringIntegrationContext() throws Exception{
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
-		Assert.assertNotNull(context);
-        Thread.sleep(2000);
-		Assert.assertTrue(context.containsBean("stringConversionService"));
-    }
+	private static final Logger LOGGER = LogManager.getLogger();
 
-    @Test
-    void testConvertStringToUpperCase() {
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
+	@Autowired
+	private StatelessClient statelessClient;
 
-        final StringConversionService service = context.getBean(StringConversionService.class);
+	@Autowired
+	private ConfigurableApplicationContext context;
 
-        final String stringToConvert = "I love Spring Integration";
-        final String expectedResult  = "I LOVE SPRING INTEGRATION";
+	@Override
+	public void run(ApplicationArguments applicationArguments) throws Exception {
+		CountDownLatch latch = context.getBean("cbLatch", CountDownLatch.class);
+		for (int i = 0; i < 10; i++) {
+			try {
+				String result = this.statelessClient.send("hello");
+				LOGGER.info("Stateless circuit breaker returned: " + result);
+			}
+			catch (Exception e) {
+				LOGGER.error("Exception during send: " + e.getMessage());
+			}
+		}
+		Assert.isTrue(latch.await(10, TimeUnit.SECONDS), "Latch timed out");
+		this.statelessClient.send("goodbye");
+	}
 
-        Assert.assertEquals("Expecting that the string is converted to upper case.",
-                expectedResult, service.convertToUpperCase(stringToConvert));
-    }
+	@MessagingGateway
+	public interface StatelessClient {
+
+		@Gateway(requestChannel = "circuitBreakerDemo.input")
+		String send(String message);
+
+	}
+
+	@Configuration
+	@EnableIntegration
+	public static class CircuitBreakerConfiguration {
+
+		@Bean
+		public MessageChannel circuitBreakerDemoInput() {
+			return new DirectChannel();
+		}
+
+		@Bean
+		public CountDownLatch cbLatch() {
+			return new CountDownLatch(3);
+		}
+
+		@Bean
+		public IntegrationFlow circuitBreakerDemo() {
+			SpelExpressionParser parser = new SpelExpressionParser();
+			ExpressionEvaluatingRequestHandlerAdvice recoveryAdvice =
+					new ExpressionEvaluatingRequestHandlerAdvice();
+			recoveryAdvice.setSuccessChannelName("successChannel");
+			recoveryAdvice.setExpression("payload + ' - success'");
+			recoveryAdvice.setRecoveryExpression("payload + ' - recovery'");
+			recoveryAdvice.afterPropertiesSet();
+			return f -> f
+					.transform(String.class, s -> {
+								if (s.equals("goodbye")) {
+									throw new RuntimeException("Planned");
+								}
+								return s;
+							},
+							e -> e.advice(recoveryAdvice))
+					.handle(m -> {
+						CountDownLatch latch = m.getHeaders().get("cbLatch", CountDownLatch.class);
+						latch.countDown();
+						LOGGER.info("Handler received: " + m.getPayload());
+					})
+					.channel("successChannel")
+					.handle(m -> LOGGER.info("Success channel received: " + m.getPayload()));
+		}
+
+		@Bean
+		public MessageChannel successChannel() {
+			return new DirectChannel();
+		}
+
+	}
+
+	public static void main(String[] args) throws Exception {
+		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(ApplicationConfig.class);
+		CircuitBreakerDemo demo = context.getBean(CircuitBreakerDemo.class);
+		demo.run(null);
+		context.close();
+	}
 
 }

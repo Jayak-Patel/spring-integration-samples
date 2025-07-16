@@ -1,51 +1,47 @@
-/*
- * Copyright 2002-2010 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- */
-
 package org.springframework.integration.sts;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.service.StringConversionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.messaging.Message;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 /**
- * Verify that the Spring Integration Application Context starts successfully.
+ * Sample REST client.
+ *
+ * @author Gary Russell
+ * @since 3.0
+ *
  */
+@Component
+public class RestHttpClientTest {
 
-class StringConversionServiceTest {
+	private static final Logger LOGGER = LogManager.getLogger();
 
-    @Test
-    void testStartupOfSpringIntegrationContext() throws Exception{
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
-		Assert.assertNotNull(context);
-        Thread.sleep(2000);
-		Assert.assertTrue(context.containsBean("stringConversionService"));
-    }
+	@Autowired
+	private RestTemplate restTemplate;
 
-    @Test
-    void testConvertStringToUpperCase() {
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
-
-        final StringConversionService service = context.getBean(StringConversionService.class);
-
-        final String stringToConvert = "I love Spring Integration";
-        final String expectedResult  = "I LOVE SPRING INTEGRATION";
-
-        Assert.assertEquals("Expecting that the string is converted to upper case.",
-                expectedResult, service.convertToUpperCase(stringToConvert));
-    }
+	public Message<?> perform(Message<?> message) {
+		String payload = (String) message.getPayload();
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("Payload = " + payload);
+		}
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.TEXT_PLAIN);
+		HttpEntity<String> request = new HttpEntity<>(payload, headers);
+		String result = restTemplate.exchange("http://localhost:8080/receive", HttpMethod.POST, request, String.class)
+				.getBody();
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("Result = " + result);
+		}
+		return MessageBuilder.withPayload(result).copyHeaders(message.getHeaders()).build();
+	}
 
 }

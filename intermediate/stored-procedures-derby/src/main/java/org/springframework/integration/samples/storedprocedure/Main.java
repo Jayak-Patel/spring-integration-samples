@@ -1,129 +1,20 @@
-/*
- * Copyright 2002-2017 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- */
-package org.springframework.integration.samples.mongodb.outbound;
+package org.springframework.integration.sts;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.samples.mongodb.domain.Address;
-import org.springframework.integration.samples.mongodb.domain.Person;
-import org.springframework.integration.samples.mongodb.util.DemoUtils;
-import org.springframework.messaging.MessageChannel;
-import org.springframework.messaging.support.GenericMessage;
+import java.util.concurrent.atomic.AtomicInteger;
 
-/**
-*
-* @author Oleg Zhurakousky
-* @author Gary Russell
-*/
-public class MongoDbOutboundAdapterDemo {
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbOutboundAdapterDemo.class);
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ImportResource;
 
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) throws Exception {
-		try {
-			DemoUtils.prepareMongoFactory(); // will clean up MongoDB
-			new MongoDbOutboundAdapterDemo().runDefaultAdapter();
-		}
-		catch (DemoException e) {
-			LOGGER.error(String.format("An error occurred during the demo: %s", e.getMessage()));
-		}
-	}
-
-	public void runDefaultAdapter() throws Exception {
-
-		try (ClassPathXmlApplicationContext context =
-				new ClassPathXmlApplicationContext("mongodb-out-config.xml", MongoDbOutboundAdapterDemo.class)) {
-
-			MessageChannel messageChannel = context.getBean("defaultAdapter", MessageChannel.class);
-			messageChannel.send(new GenericMessage<Person>(this.createPersonA()));
-			messageChannel.send(new GenericMessage<Person>(this.createPersonB()));
-			messageChannel.send(new GenericMessage<Person>(this.createPersonC()));
-		}
-		catch (Exception e) {
-			LOGGER.error("Failed to run default adapter", e);
-			throw new DemoException("Failed to run default adapter", e);
-		}
-	}
-
-	public void runAdapterWithConverter() throws Exception {
-
-		try (ClassPathXmlApplicationContext context =
-				new ClassPathXmlApplicationContext("mongodb-out-config.xml", MongoDbOutboundAdapterDemo.class)) {
-
-			MessageChannel messageChannel = context.getBean("adapterWithConverter", MessageChannel.class);
-			messageChannel.send(new GenericMessage<String>("John, Dow, Palo Alto, 3401 Hillview Ave, 94304, CA"));
-		}
-		catch (Exception e) {
-			LOGGER.error("Failed to run adapter with converter", e);
-			throw new DemoException("Failed to run adapter with converter", e);
-		}
-	}
-
-	private Person createPersonA(){
-		Address address = new Address();
-		address.setCity("Palo Alto");
-		address.setStreet("3401 Hillview Ave");
-		address.setZip("94304");
-		address.setState("CA");
-
-		Person person = new Person();
-		person.setFname("John");
-		person.setLname("Doe");
-		person.setAddress(address);
-
-		return person;
-	}
-
-	private Person createPersonB(){
-		Address address = new Address();
-		address.setCity("San Francisco");
-		address.setStreet("123 Main st");
-		address.setZip("94115");
-		address.setState("CA");
-
-		Person person = new Person();
-		person.setFname("Josh");
-		person.setLname("Doe");
-		person.setAddress(address);
-
-		return person;
-	}
-
-	private Person createPersonC(){
-		Address address = new Address();
-		address.setCity("Philadelphia");
-		address.setStreet("2323 Market st");
-		address.setZip("19152");
-		address.setState("PA");
-
-		Person person = new Person();
-		person.setFname("Jane");
-		person.setLname("Doe");
-		person.setAddress(address);
-
-		return person;
-	}
-
-	@SuppressWarnings("serial")
-	public static class DemoException extends Exception {
-
-		public DemoException(String message) {
-			super(message);
-		}
-
-		public DemoException(String message, Throwable cause) {
-			super(message, cause);
-		}
-	}
+@Configuration
+@ImportResource({"/META-INF/spring/retry-stateless.xml",
+		"/META-INF/spring/retry-stateful.xml",
+		"/META-INF/spring/retry-circuitbreaker.xml",
+		"/META-INF/spring/retry-tx-synch.xml",
+		"/META-INF/spring/retry-ftp-delete.xml",
+		"/META-INF/spring/retry-ftp-rename-after-failure.xml"})
+public class ApplicationConfig {
 }

@@ -1,208 +1,196 @@
 /*
- * Copyright 2018 the original author or authors.
+ * Copyright 2012-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-package org.springframework.integration.samples.dynamictcp;
+package org.springframework.integration.samples.jpa;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map.Entry;
+import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.integration.samples.jpa.domain.Student;
+import org.springframework.integration.samples.jpa.service.StudentService;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.integration.annotation.MessagingGateway;
-import org.springframework.integration.channel.QueueChannel;
-import org.springframework.integration.config.EnableMessageHistory;
-import org.springframework.integration.dsl.IntegrationFlow;
-import org.springframework.integration.dsl.context.IntegrationFlowContext;
-import org.springframework.integration.ip.tcp.TcpReceivingChannelAdapter;
-import org.springframework.integration.ip.tcp.TcpSendingMessageHandler;
-import org.springframework.integration.ip.tcp.connection.TcpNetClientConnectionFactory;
-import org.springframework.integration.ip.tcp.connection.TcpNetServerConnectionFactory;
-import org.springframework.integration.router.AbstractMessageRouter;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageChannel;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.util.Assert;
-
-@SpringBootApplication
-@EnableMessageHistory
-public class DynamicTcpClientApplication {
-
-	private static final Logger LOGGER = LoggerFactory.getLogger(DynamicTcpClientApplication.class);
+/**
+ * Sample Application Context for demonstrating JPA Outbound Adapter
+ *
+ * @author Amol Nayak
+ * @author Gary Russell
+ * @author Michael Wiles
+ * @since 2.2
+ */
+public class Main {
 
 	public static void main(String[] args) {
-		ConfigurableApplicationContext context = SpringApplication.run(DynamicTcpClientApplication.class, args);
-		ToTCP toTcp = context.getBean(ToTCP.class);
-		if (toTcp != null){
-			toTcp.send("foo", "localhost", 1234);
-			toTcp.send("foo", "localhost", 5678);
-		} else {
-			LOGGER.error("ToTCP bean is null, cannot send messages.");
+
+		final AbstractApplicationContext context =
+				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/jpa-config.xml");
+
+		context.registerShutdownHook();
+
+		StudentService studentService = context.getBean(StudentService.class);
+
+		System.out.println("\n========================================================="
+				+ "\n          Welcome to Spring Integration JPA Sample"
+				+ "\n    For more information please visit:"
+				+ "\n    https://www.springsource.org/spring-integration"
+				+ "\n=========================================================");
+
+
+		System.out.println("\nStarting the JPA Outbound Adapter Demo now, "
+				+ "please wait for a while to see the results .....\n");
+
+		/*try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+
+		System.out.println("Lets persist a student");
+		Student student = new Student();
+		student.setFirstName("Integration");
+		student.setLastName("Spring");
+		student.setGender("Male");
+
+		Student persisted = null;
+		if (student != null) {
+			persisted = studentService.persist(student);
 		}
-		
-		QueueChannel outputChannel = context.getBean("outputChannel", QueueChannel.class);
-		if (outputChannel != null) {
-			Message<?> receivedMessage1 = outputChannel.receive(10000);
-			if (receivedMessage1 != null) {
-				LOGGER.info(receivedMessage1.toString());
-			} else {
-				LOGGER.warn("No message received from outputChannel within 10000ms");
+
+		if (persisted != null) {
+			System.out.printf("Successfully persisted the student with id '%d'%n",
+					persisted.getStudentId());
+		}
+
+		/*try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+
+		System.out.println("Now lets retrieve the student just persisted");
+		Student retrieved = null;
+		if (persisted != null) {
+			retrieved = studentService.find(persisted.getStudentId());
+		}
+
+		if (retrieved != null) {
+			System.out.printf("Successfully retrieved student with id '%d' having first name '%s' and last name '%s'%n",
+					retrieved.getStudentId(), retrieved.getFirstName(), retrieved.getLastName());
+		}
+		else {
+			System.out.println("Student could not be retrieved");
+		}
+
+		//Give some time for the flow to complete processing and then retrieve the student
+		/*try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+
+		System.out.println("Now lets find all students");
+		List<Student> studentList = studentService.findAll();
+		System.out.printf("Total Students found %d%n", (studentList != null ? studentList.size() : 0));
+		if (studentList != null && studentList.size() > 0) {
+			System.out.println("Displaying all Students");
+			for (Student s : studentList) {
+				System.out.printf("Student Id: %d, First Name: %s, Last Name: %s%n",
+						s.getStudentId(), s.getFirstName(), s.getLastName());
 			}
+		}
 
-			Message<?> receivedMessage2 = outputChannel.receive(10000);
-			if (receivedMessage2 != null) {
-				LOGGER.info(receivedMessage2.toString());
-			} else {
-				LOGGER.warn("No message received from outputChannel within 10000ms");
+		/*try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+
+		System.out.println("Now lets find the student with first name Integration");
+		List<Student> integrationList = studentService.findByFirstName("Integration");
+		System.out.printf("Total Students found with first name Integration %d%n", (integrationList != null ? integrationList.size() : 0));
+		if (integrationList != null && integrationList.size() > 0) {
+			System.out.println("Displaying all Students with first name Integration");
+			for (Student s : integrationList) {
+				System.out.printf("Student Id: %d, First Name: %s, Last Name: %s%n",
+						s.getStudentId(), s.getFirstName(), s.getLastName());
 			}
-		} else {
-			LOGGER.error("outputChannel bean is null, cannot receive messages.");
 		}
-		if (context != null) {
-			context.close();
-		}
-	}
 
-	// Client side
+		/*try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
 
-	@MessagingGateway(defaultRequestChannel = "toTcp.input")
-	public interface ToTCP {
-
-		void send(String data, @Header("host") String host, @Header("port") int port);
-
-	}
-
-	@Bean
-	public IntegrationFlow toTcp() {
-		return f -> f.route(new TcpRouter());
-	}
-
-	// Two servers
-
-	@Bean
-	public TcpNetServerConnectionFactory cfOne() {
-		return new TcpNetServerConnectionFactory(1234);
-	}
-
-	@Bean
-	public TcpReceivingChannelAdapter inOne(TcpNetServerConnectionFactory cfOne) {
-		TcpReceivingChannelAdapter adapter = new TcpReceivingChannelAdapter();
-		adapter.setConnectionFactory(cfOne);
-		adapter.setOutputChannel(outputChannel());
-		return adapter;
-	}
-
-	@Bean
-	public TcpNetServerConnectionFactory cfTwo() {
-		return new TcpNetServerConnectionFactory(5678);
-	}
-
-	@Bean
-	public TcpReceivingChannelAdapter inTwo(TcpNetServerConnectionFactory cfTwo) {
-		TcpReceivingChannelAdapter adapter = new TcpReceivingChannelAdapter();
-		adapter.setConnectionFactory(cfTwo);
-		adapter.setOutputChannel(outputChannel());
-		return adapter;
-	}
-
-	@Bean
-	public QueueChannel outputChannel() {
-		return new QueueChannel();
-	}
-
-	public static class TcpRouter extends AbstractMessageRouter {
-
-		private static final Logger LOGGER = LoggerFactory.getLogger(TcpRouter.class);
-
-		private static final int MAX_CACHED = 10; // When this is exceeded, we remove the LRU.
-
-		@SuppressWarnings("serial")
-		private final LinkedHashMap<String, MessageChannel> subFlows =
-				new LinkedHashMap<String, MessageChannel>(MAX_CACHED, .75f, true) {
-
-					@Override
-					protected boolean removeEldestEntry(Entry<String, MessageChannel> eldest) {
-						if (size() > MAX_CACHED) {
-							removeSubFlow(eldest);
-							return true;
-						}
-						else {
-							return false;
-						}
-					}
-
-				};
-
-		@Autowired
-		private IntegrationFlowContext flowContext;
-
-		@Override
-		protected synchronized Collection<MessageChannel> determineTargetChannels(Message<?> message) {
-			String host = message.getHeaders().get("host", String.class);
-			Integer port = message.getHeaders().get("port", Integer.class);
-			String hostPort = host + port;
-
-			MessageChannel channel = this.subFlows.get(hostPort);
-
-			if (channel == null) {
-				channel = createNewSubflow(message);
+		System.out.println("Now lets find all students in ascending order");
+		List<Student> studentListAsc = studentService.findAllByOrderByFirstNameAsc();
+		System.out.printf("Total Students found %d%n", (studentListAsc != null ? studentListAsc.size() : 0));
+		if (studentListAsc != null && studentListAsc.size() > 0) {
+			System.out.println("Displaying all Students in ascending order");
+			for (Student s : studentListAsc) {
+				System.out.printf("Student Id: %d, First Name: %s, Last Name: %s%n",
+						s.getStudentId(), s.getFirstName(), s.getLastName());
 			}
-
-			return Collections.singletonList(channel);
 		}
 
-		private MessageChannel createNewSubflow(Message<?> message) {
-			String host = message.getHeaders().get("host", String.class);
-			Integer port = message.getHeaders().get("port", Integer.class);
-			Assert.state(host != null && port != null, "host and/or port header missing");
-			String hostPort = host + port;
+		/*try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
 
-			TcpNetClientConnectionFactory cf = new TcpNetClientConnectionFactory(host, port);
-			TcpSendingMessageHandler handler = new TcpSendingMessageHandler();
-			handler.setConnectionFactory(cf);
-			// Check if the connection factory is already started before starting it.
-			if (cf != null && !cf.isRunning()) {
-				try{
-					cf.start();
-				} catch (Exception e) {
-					LOGGER.error(String.format("Exception during cf.start(): %s", e.getMessage()));
-				}
+		System.out.println("Now lets update the student's last name to Integration");
+		Student updated = null;
+		if (retrieved != null) {
+			retrieved.setLastName("Integration");
+			updated = studentService.update(retrieved);
+		}
 
+		if (updated != null) {
+			System.out.printf("Successfully updated student with id '%d' having first name '%s' and last name '%s'%n",
+					updated.getStudentId(), updated.getFirstName(), updated.getLastName());
+		}
+		else {
+			System.out.println("Student could not be updated");
+		}
+
+		/*try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+
+		System.out.println("Now lets delete a student with id " + (persisted != null ? persisted.getStudentId() : "null"));
+		if (persisted != null) {
+			if (studentService.delete(persisted.getStudentId())) {
+				System.out.printf("Successfully deleted student with id %d%n", persisted.getStudentId());
 			}
-
-			IntegrationFlow flow = f -> f.handle(handler);
-
-			IntegrationFlowContext.IntegrationFlowRegistration flowRegistration =
-					this.flowContext.registration(flow)
-							.addBean(cf)
-							.id(String.format("%s.flow", hostPort))
-							.register();
-			MessageChannel inputChannel = flowRegistration.getInputChannel();
-			this.subFlows.put(hostPort, inputChannel);
-			LOGGER.info(String.format("Created new subflow for hostPort: %s", hostPort));
-			return inputChannel;
+			else {
+				System.out.println("Student could not be deleted");
+			}
 		}
 
-		private void removeSubFlow(Entry<String, MessageChannel> eldest) {
-			String hostPort = eldest.getKey();
-			this.flowContext.remove(String.format("%s.flow", hostPort));
-			LOGGER.info(String.format("Removed subflow for hostPort: %s", hostPort));
-		}
+		context.close();
 
 	}
-
 }

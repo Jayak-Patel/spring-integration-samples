@@ -1,51 +1,45 @@
-/*
- * Copyright 2002-2010 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- */
-
 package org.springframework.integration.sts;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.service.StringConversionService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-/**
- * Verify that the Spring Integration Application Context starts successfully.
- */
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.integration.handler.advice.AbstractRequestHandlerAdvice;
+import org.springframework.messaging.Message;
+import org.springframework.stereotype.Component;
 
-class StringConversionServiceTest {
+@Component
+public class TransformationService {
 
-    @Test
-    void testStartupOfSpringIntegrationContext() throws Exception{
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
-		Assert.assertNotNull(context);
-        Thread.sleep(2000);
-		Assert.assertTrue(context.containsBean("stringConversionService"));
-    }
+	private static final Logger LOGGER = LogManager.getLogger();
 
-    @Test
-    void testConvertStringToUpperCase() {
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
+	private final AtomicInteger counter = new AtomicInteger();
 
-        final StringConversionService service = context.getBean(StringConversionService.class);
+	@Autowired
+	private AbstractApplicationContext context;
 
-        final String stringToConvert = "I love Spring Integration";
-        final String expectedResult  = "I LOVE SPRING INTEGRATION";
+	public String transform(String input) {
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("TransformationService was invoked with: " + input);
+		}
+		if (counter.incrementAndGet() % 3 == 0) {
+			throw new RuntimeException("Demo exception");
+		}
+		return input.toUpperCase();
+	}
 
-        Assert.assertEquals("Expecting that the string is converted to upper case.",
-                expectedResult, service.convertToUpperCase(stringToConvert));
-    }
+	public AbstractRequestHandlerAdvice getChain2Advice() {
+		return context.getBean("chain2Advice", AbstractRequestHandlerAdvice.class);
+	}
+
+	public Message<?> checkResult(Message<?> message) {
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("Checking the transformed message " + message);
+		}
+		return message;
+	}
 
 }

@@ -1,98 +1,65 @@
-/*
- * Copyright 2002-2017 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- */
-package org.springframework.integration.samples.storedprocedure;
+package org.springframework.integration.samples.mongodb.outbound;
 
-import java.util.Scanner;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.junit.Assert;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.service.StringConversionService;
-
 
 /**
- * Starts the Spring Context and will initialize the Spring Integration routes.
  *
  * @author Gunnar Hillert
- * @author Gary Russell
- * @version 1.0
+ * @since 2.2
  *
  */
-public final class Main {
+public final class MongoDbOutboundAdapterDemo {
 
-	private static final Log LOGGER = LogFactory.getLog(Main.class);
+	private static final Logger LOGGER = LogManager.getLogger();
 
-	private Main() { }
+	private MongoDbOutboundAdapterDemo() { }
 
 	/**
-	 * Load the Spring Integration Application Context
-	 *
-	 * @param args - command line arguments
+	 * Load the Spring Integration context and start the process.
 	 */
 	public static void main(final String... args) {
 
-		LOGGER.info("""
-
-				=========================================================
-				                                                         
-				          Welcome to Spring Integration!                 
-				                                                         
-				    For more information please visit:                   
-				    https://www.springsource.org/spring-integration       
-				                                                         
-				=========================================================
-				""");
+		LOGGER.info("\n========================================================="
+				+ "\n                                                         "
+				+ "\n          Welcome to the MongoDB Demo!                     "
+				+ "\n                                                         "
+				+ "\n    This sample demonstrates how to use the               "
+				+ "\n    MongoDB Outbound Adapter.                                "
+				+ "\n                                                         "
+				+ "\n========================================================="
+		);
 
 		final AbstractApplicationContext context =
 				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/*-context.xml");
 
 		context.registerShutdownHook();
 
-		final Scanner scanner = new Scanner(System.in);
+		/*final SimpleJdbcTemplate simpleJdbcTemplate = (SimpleJdbcTemplate) context.getBean("simpleJdbcTemplate");
 
-		final StringConversionService service = context.getBean(StringConversionService.class);
+		System.out.println("\nPopulating test table ...");
 
-		LOGGER.info("""
+		simpleJdbcTemplate.update("DELETE FROM EMPLOYEES");
 
-				=========================================================
-				                                                         
-				    Please press 'q + Enter' to quit the application.    
-				                                                         
-				=========================================================
-				""");
+		simpleJdbcTemplate.update("INSERT INTO EMPLOYEES (id, name, salary) VALUES (1, 'John Doe', 1000)");
+		simpleJdbcTemplate.update("INSERT INTO EMPLOYEES (id, name, salary) VALUES (2, 'Jane Doe', 2000)");
+		simpleJdbcTemplate.update("INSERT INTO EMPLOYEES (id, name, salary) VALUES (3, 'Joe Bloggs', 3000)");
 
-		LOGGER.info("Please enter a string and press <enter>: ");
+		System.out.println("\nCreated " +
+				simpleJdbcTemplate.queryForInt("SELECT COUNT(*) FROM EMPLOYEES") + " records.");*/
 
-		while (!scanner.hasNext("q")) {
-			String input = scanner.nextLine();
-
-			LOGGER.info("Converting String to Uppercase using Stored Procedure...");
-			String inputUpperCase = service.convertToUpperCase(input);
-
-			LOGGER.info("Retrieving Numeric value via Sql Function...");
-			Integer number = service.getNumber();
-
-			LOGGER.info(String.format("Converted '%s' - End Result: '%s_%s'.", input, inputUpperCase, number));
-			LOGGER.info("To try again, please enter a string and press <enter>:");
-
-			// Adding an assertion to validate the service's response
-			Assert.assertNotNull(number, "The number retrieved from service should not be null");
+		try {
+			System.in.read();
+		}
+		catch (final IOException e) {
+			System.err.println(e);
 		}
 
-		LOGGER.info("Exiting application...bye.");
-
-		scanner.close();
+		LOGGER.info("Exiting application. Shutting down context.");
 		context.close();
+
 	}
 
 }

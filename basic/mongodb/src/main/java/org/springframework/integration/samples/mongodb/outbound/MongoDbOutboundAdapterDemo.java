@@ -1,144 +1,71 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      https://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package org.springframework.integration.samples.mongodb.outbound;
+
+package org.springframework.integration.sts;
+
+import java.io.IOException;
+import java.util.Scanner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.samples.mongodb.domain.Address;
-import org.springframework.integration.samples.mongodb.domain.Person;
-import org.springframework.integration.samples.mongodb.util.DemoUtils;
-import org.springframework.messaging.MessageChannel;
-import org.springframework.messaging.support.GenericMessage;
 
 /**
-*
-* @author Oleg Zhurakousky
-* @author Gary Russell
-*/
-public class MongoDbOutboundAdapterDemo {
+ * Main class.
+ *
+ * @author Gary Russell
+ * @author Artem Bilan
+ * @since 4.2
+ *
+ */
+public final class Main {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbOutboundAdapterDemo.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) throws Exception {
+	private Main() {
+		super();
+	}
+
+	public static void main(final String[] args) {
+		LOGGER.info("Starting application");
+
+		final ConfigurableApplicationContext context =
+				new ClassPathXmlApplicationContext(
+						"META-INF/spring/integration/spring-integration-context.xml");
+
+		context.registerShutdownHook();
+
 		try {
-			DemoUtils.prepareMongoFactory(); // will clean up MongoDB
-			new MongoDbOutboundAdapterDemo().runDefaultAdapter();
+			LOGGER.info("\n========================================================="
+					+ "\n                                                         "
+					+ "\n          Press 'Enter' to terminate the application.    "
+					+ "\n                                                         "
+					+ "\n=========================================================" );
+
+			new Scanner(System.in).nextLine();
+			System.in.read();
 		}
-		catch (DemoException e) {
-			LOGGER.error(String.format("An error occurred during the demo: %s", e.getMessage()));
+		catch (final IOException e) {
+			LOGGER.error("Exception details: {}", e.getMessage(), e);
 		}
+
+		LOGGER.info("Exiting application. Shutting down context.");
+		context.close();
 	}
 
-	public void runDefaultAdapter() throws Exception {
-
-		try (ClassPathXmlApplicationContext context =
-				new ClassPathXmlApplicationContext("mongodb-out-config.xml", MongoDbOutboundAdapterDemo.class)) {
-
-			MessageChannel messageChannel = context.getBean("defaultAdapter", MessageChannel.class);
-			messageChannel.send(new GenericMessage<Person>(this.createPersonA()));
-			messageChannel.send(new GenericMessage<Person>(this.createPersonB()));
-			messageChannel.send(new GenericMessage<Person>(this.createPersonC()));
-		}
-		catch (FailedToRunAdapterException e) {
-			throw e;
-		}
-		catch (Exception e) {
-			throw new FailedToRunAdapterException("Failed to run default adapter due to an unexpected error", e);
-		}
-	}
-
-	public void runAdapterWithConverter() throws Exception {
-
-		try (ClassPathXmlApplicationContext context =
-				new ClassPathXmlApplicationContext("mongodb-out-config.xml", MongoDbOutboundAdapterDemo.class)) {
-
-			MessageChannel messageChannel = context.getBean("adapterWithConverter", MessageChannel.class);
-			messageChannel.send(new GenericMessage<String>("John, Dow, Palo Alto, 3401 Hillview Ave, 94304, CA"));
-		}
-		catch (FailedToRunAdapterException e) {
-			throw e;
-		}
-		catch (Exception e) {
-			throw new FailedToRunAdapterException("Failed to run adapter with converter due to an unexpected error", e);
-		}
-	}
-
-	private Person createPersonA(){
-		Address address = new Address();
-		address.setCity("Palo Alto");
-		address.setStreet("3401 Hillview Ave");
-		address.setZip("94304");
-		address.setState("CA");
-
-		Person person = new Person();
-		person.setFname("John");
-		person.setLname("Doe");
-		person.setAddress(address);
-
-		return person;
-	}
-
-	private Person createPersonB(){
-		Address address = new Address();
-		address.setCity("San Francisco");
-		address.setStreet("123 Main st");
-		address.setZip("94115");
-		address.setState("CA");
-
-		Person person = new Person();
-		person.setFname("Josh");
-		person.setLname("Doe");
-		person.setAddress(address);
-
-		return person;
-	}
-
-	private Person createPersonC(){
-		Address address = new Address();
-		address.setCity("Philadelphia");
-		address.setStreet("2323 Market st");
-		address.setZip("19152");
-		address.setState("PA");
-
-		Person person = new Person();
-		person.setFname("Jane");
-		person.setLname("Doe");
-		person.setAddress(address);
-
-		return person;
-	}
-
-	@SuppressWarnings("serial")
-	public static class DemoException extends Exception {
-
-		public DemoException(String message) {
-			super(message);
-		}
-
-		public DemoException(String message, Throwable cause) {
-			super(message, cause);
-		}
-	}
-	@SuppressWarnings("serial")
-	public static class FailedToRunAdapterException extends Exception {
-
-		public FailedToRunAdapterException(String message) {
-			super(message);
-		}
-
-		public FailedToRunAdapterException(String message, Throwable cause) {
-			super(message, cause);
-		}
-	}
 }

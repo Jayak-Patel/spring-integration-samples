@@ -1,51 +1,82 @@
-/*
- * Copyright 2002-2010 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- */
-
 package org.springframework.integration.sts;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Types;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import org.springframework.context.ApplicationContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.service.StringConversionService;
+import org.springframework.dao.DataAccessException;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.SqlParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcCall;
+import org.springframework.messaging.Message;
+
+import javax.sql.DataSource;
 
 /**
- * Verify that the Spring Integration Application Context starts successfully.
+ *
+ * @author Gunnar Hillert
+ * @since 2.2
+ *
  */
+public final class Main {
 
-class StringConversionServiceTest {
+	private static final Logger LOGGER = LogManager.getLogger();
 
-    @Test
-    void testStartupOfSpringIntegrationContext() throws Exception{
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
-		Assert.assertNotNull(context);
-        Thread.sleep(2000);
-		Assert.assertTrue(context.containsBean("stringConversionService"));
-    }
+	private Main() { }
 
-    @Test
-    void testConvertStringToUpperCase() {
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
+	/**
+	 * Load the Spring Integration context and start the process.
+	 */
+	public static void main(final String... args) {
 
-        final StringConversionService service = context.getBean(StringConversionService.class);
+		LOGGER.info("\n========================================================="
+				+ "\n                                                         "
+				+ "\n          Welcome to the Stored Procedure Sample!           "
+				+ "\n                                                         "
+				+ "\n    This sample demonstrates how to call four different    "
+				+ "\n    stored procedures:                                      "
+				+ "\n                                                         "
+				+ "\n        1. A Simple Stored Procedure Call                 "
+				+ "\n        2. A Stored Procedure Output Parameter              "
+				+ "\n        3. A Stored Procedure Returning a ResultSet         "
+				+ "\n        4. A Stored Procedure with a Poller               "
+				+ "\n                                                         "
+				+ "\n========================================================="
+		);
 
-        final String stringToConvert = "I love Spring Integration";
-        final String expectedResult  = "I LOVE SPRING INTEGRATION";
+		final AbstractApplicationContext context =
+				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/*-context.xml");
 
-        Assert.assertEquals("Expecting that the string is converted to upper case.",
-                expectedResult, service.convertToUpperCase(stringToConvert));
-    }
+		context.registerShutdownHook();
+
+		final StoredProcedureTest storedProcedureTest = (StoredProcedureTest) context.getBean("storedProcedureTest");
+
+		storedProcedureTest.runStoredProcedureTests();
+
+		LOGGER.info("Hit 'Enter' to terminate");
+
+		try {
+			System.in.read();
+		}
+		catch (final IOException e) {
+			LOGGER.error("Exception details: {}" , e.getMessage(), e);
+		}
+
+		LOGGER.info("Exiting application. Shutting down context.");
+		context.close();
+
+	}
 
 }

@@ -1,51 +1,73 @@
-/*
- * Copyright 2002-2010 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- */
-
 package org.springframework.integration.sts;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.io.IOException;
 
-import org.springframework.context.ApplicationContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.service.StringConversionService;
 
 /**
- * Verify that the Spring Integration Application Context starts successfully.
+ * Main class for the TCP Client/Server sample with Headers.
+ *
+ * @author Gary Russell
+ * @since 3.0
  */
+public final class TcpWithHeadersApplication {
 
-class StringConversionServiceTest {
+	private static final Logger LOGGER = LogManager.getLogger();
 
-    @Test
-    void testStartupOfSpringIntegrationContext() throws Exception{
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
-		Assert.assertNotNull(context);
-        Thread.sleep(2000);
-		Assert.assertTrue(context.containsBean("stringConversionService"));
-    }
+	private TcpWithHeadersApplication() { }
 
-    @Test
-    void testConvertStringToUpperCase() {
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
+	/**
+	 * Load the Spring Integration context and start the process.
+	 *
+	 * @param args - command line arguments
+	 */
+	public static void main(final String... args) {
 
-        final StringConversionService service = context.getBean(StringConversionService.class);
+		logWelcomeMessage();
 
-        final String stringToConvert = "I love Spring Integration";
-        final String expectedResult  = "I LOVE SPRING INTEGRATION";
+		AbstractApplicationContext context = new ClassPathXmlApplicationContext(
+				"META-INF/spring/integration/tcp-header-client-context.xml",
+				"META-INF/spring/integration/tcp-header-server-context.xml");
 
-        Assert.assertEquals("Expecting that the string is converted to upper case.",
-                expectedResult, service.convertToUpperCase(stringToConvert));
-    }
+		context.registerShutdownHook();
+
+		terminateOnEnter(context);
+
+		LOGGER.info("Exiting application. Shutting down.");
+		context.close();
+
+	}
+
+	private static void logWelcomeMessage() {
+		StringBuilder welcomeMessage = new StringBuilder();
+		welcomeMessage.append("\n=========================================================\n");
+		welcomeMessage.append("                                                         \n");
+		welcomeMessage.append("          Welcome to the TCP Headers Sample               \n");
+		welcomeMessage.append("                                                         \n");
+		welcomeMessage.append("    This sample demonstrates message delivery using TCP   \n");
+		welcomeMessage.append("    and includes message headers. There are two main     \n");
+		welcomeMessage.append("    components; a client and server.                     \n");
+		welcomeMessage.append("                                                         \n");
+		welcomeMessage.append("    The Client sends a message to the server which echos \n");
+		welcomeMessage.append("    the message back to the client.                      \n");
+		welcomeMessage.append("                                                         \n");
+		welcomeMessage.append("=========================================================\n");
+
+		LOGGER.info(welcomeMessage.toString());
+	}
+
+	private static void terminateOnEnter(AbstractApplicationContext context) {
+		try {
+			LOGGER.info("Hit 'Enter' to terminate");
+			System.in.read();
+		}
+		catch (Exception e) {
+			LOGGER.error("Error during termination: {}", e.getMessage(), e);
+		}
+	}
 
 }

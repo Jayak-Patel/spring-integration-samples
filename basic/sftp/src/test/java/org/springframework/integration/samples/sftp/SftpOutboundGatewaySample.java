@@ -1,78 +1,102 @@
-/*
- * Copyright 2002-2011 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- */
+package org.springframework.integration.sts;
 
-package org.springframework.integration.samples.sftp;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Types;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.sshd.sftp.client.SftpClient;
-import org.junit.jupiter.api.Test;
-
-import org.springframework.context.ConfigurableApplicationContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.file.remote.RemoteFileTemplate;
-import org.springframework.integration.file.remote.session.CachingSessionFactory;
-import org.springframework.integration.file.remote.session.SessionFactory;
+import org.springframework.dao.DataAccessException;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.SqlParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcCall;
+import org.springframework.messaging.Message;
+
+import javax.sql.DataSource;
+
+import org.junit.Assert;
 
 /**
- * Demonstrates use of the outbound gateway to use ls, get and rm.
- * Creates a temporary directory with 2 files; retrieves and removes them.
  *
- * @author Gary Russell
- *
- * @since 2.1
+ * @author Gunnar Hillert
+ * @since 2.2
  *
  */
-class SftpOutboundGatewaySample {
+public final class Main {
 
-	@Test
-	void testLsGetRm() {
-		ConfigurableApplicationContext ctx = new ClassPathXmlApplicationContext(
-				"classpath:/META-INF/spring/integration/SftpOutboundGatewaySample-context.xml");
-		ToSftpFlowGateway toFtpFlow = ctx.getBean(ToSftpFlowGateway.class);
-		RemoteFileTemplate<SftpClient.DirEntry> template = null;
-		String file1 = "1.ftptest";
-		String file2 = "2.ftptest";
-		File tmpDir = new File(System.getProperty("java.io.tmpdir"));
+	private static final Logger LOGGER = LogManager.getLogger();
 
-		try {
-			// remove the previous output files if necessary
-			new File(tmpDir, file1).delete();
-			new File(tmpDir, file2).delete();
+	private Main() { }
 
-			@SuppressWarnings("unchecked")
-			SessionFactory<SftpClient.DirEntry> sessionFactory = ctx.getBean(CachingSessionFactory.class);
-			template = new RemoteFileTemplate<>(sessionFactory);
-			SftpTestUtils.createTestFiles(template, file1, file2);
+	/**
+ 
+		StringBuilder welcomeMessage = new StringBuilder();
+		welcomeMessage.append("\n=========================================================\n");
+		welcomeMessage.append("                                                         \n");
+		welcomeMessage.append("          Welcome to the Stored Procedure Sample!           \n");
+		welcomeMessage.append("                                                         \n");
+		welcomeMessage.append("    This sample demonstrates how to call four different    \n");
+		welcomeMessage.append("    stored procedures:                                      \n");
+		welcomeMessage.append("                                                         \n");
+		welcomeMessage.append("        1. A Simple Stored Procedure Call                 \n");
+		welcomeMessage.append("        2. A Stored Procedure Output Parameter              \n");
+		welcomeMessage.append("        3. A Stored Procedure Returning a ResultSet         \n");
+		welcomeMessage.append("        4. A Stored Procedure with a Poller               \n");
+		welcomeMessage.append("                                                         \n");
+		welcomeMessage.append("=========================================================\n");
 
-			// execute the flow (ls, get, rm, aggregate results)
-			List<Boolean> rmResults = toFtpFlow.lsGetAndRmFiles("si.sftp.sample");
+		LOGGER.info(welcomeMessage.toString());
 
+		final AbstractApplicationContext context =
+				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/*-context.xml");
 
-			//Check everything went as expected, and clean up
-			assertEquals(2, rmResults.size());
-			for (Boolean result : rmResults) {
-				assertTrue(result);
+		context.registerShutdownHook();
+
+		final StoredProcedureTest storedProcedureTest = (StoredProcedureTest) context.getBean("storedProcedureTest");
+
+		storedProcedureTest.runStoredProcedureTests();
+
+		LOGGER.info("Hit 'Enter' to terminate");
+
+		final CountDownLatch latch = new CountDownLatch(1);
+
+		Thread terminateThread = new Thread(() -> {
+			try {
+				System.in.read();
+				latch.countDown();
 			}
+			catch (final IOException e) {
+				LOGGER.error("Exception details: {}" , e.getMessage(), e); //added message argument
+			}
+		});
 
+		terminateThread.start();
+		boolean terminated = false;
+		try {
+			terminated = latch.await(60, TimeUnit.SECONDS); // Timeout after 60 seconds if no Enter key is pressed
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			LOGGER.error("Interrupted while waiting for termination", e);
 		}
-		finally {
-			SftpTestUtils.cleanUp(template, file1, file2);
-			ctx.close();
-			assertTrue("Could note delete retrieved file", new File(tmpDir, file1).delete());
-			assertTrue("Could note delete retrieved file", new File(tmpDir, file2).delete());
-		}
+
+		Assert.assertTrue(terminated);
+
+		LOGGER.info("Exiting application. Shutting down context.");
+		context.close();
+
 	}
 
 }

@@ -1,51 +1,71 @@
 /*
- * Copyright 2002-2010 the original author or authors.
+ * Copyright 2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      https://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.springframework.integration.sts;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.io.IOException;
+import java.util.Scanner;
 
-import org.springframework.context.ApplicationContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.service.StringConversionService;
 
 /**
- * Verify that the Spring Integration Application Context starts successfully.
+ * Main class.
+ *
+ * @author Gary Russell
+ * @author Artem Bilan
+ * @since 4.2
+ *
  */
+public final class Main {
 
-class StringConversionServiceTest {
+	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
-    @Test
-    void testStartupOfSpringIntegrationContext() throws Exception{
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
-		Assert.assertNotNull(context);
-        Thread.sleep(2000);
-		Assert.assertTrue(context.containsBean("stringConversionService"));
-    }
+	private Main() {
+		super();
+	}
 
-    @Test
-    void testConvertStringToUpperCase() {
-        final ApplicationContext context
-            = new ClassPathXmlApplicationContext("/META-INF/spring/integration/spring-integration-context.xml",
-                                                  StringConversionServiceTest.class);
+	public static void main(final String[] args) {
+		LOGGER.info("Starting application");
 
-        final StringConversionService service = context.getBean(StringConversionService.class);
+		final ConfigurableApplicationContext context =
+				new ClassPathXmlApplicationContext(
+						"META-INF/spring/integration/spring-integration-context.xml");
 
-        final String stringToConvert = "I love Spring Integration";
-        final String expectedResult  = "I LOVE SPRING INTEGRATION";
+		context.registerShutdownHook();
 
-        Assert.assertEquals("Expecting that the string is converted to upper case.",
-                expectedResult, service.convertToUpperCase(stringToConvert));
-    }
+		try {
+			LOGGER.info("\n========================================================="
+					+ "\n                                                         "
+					+ "\n          Press 'Enter' to terminate the application.    "
+					+ "\n                                                         "
+					+ "\n=========================================================" );
+
+			new Scanner(System.in).nextLine();
+			//System.in.read(); // Removed unnecessary call
+		}
+		catch (final IOException e) {
+			LOGGER.error("Exception details: {}", e.getMessage(), e);
+		}
+
+		LOGGER.info("Exiting application. Shutting down context.");
+		context.close();
+	}
 
 }
