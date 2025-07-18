@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.springsource.org/spring-integration
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.integration.sts;
+package org.springframework.integration.samples.mongodb.outbound;
 
 import java.io.IOException;
 import java.util.Scanner;
@@ -41,7 +41,7 @@ public final class Main {
 		super();
 	}
 
-	public static void main(final String[] args) {
+	public static void main(final String... ignored) {
 		LOGGER.info("Starting application");
 
 		final ConfigurableApplicationContext context =
@@ -51,14 +51,15 @@ public final class Main {
 		context.registerShutdownHook();
 
 		try {
-			LOGGER.info("\n========================================================="
-					+ "\n                                                         "
-					+ "\n          Press 'Enter' to terminate the application.    "
-					+ "\n                                                         "
-					+ "\n=========================================================" );
+			LOGGER.info("""
+					=========================================================
+					                                                         
+					          Press 'Enter' to terminate the application.
+					                                                         
+					=========================================================
+					""");
 
 			new Scanner(System.in).nextLine();
-			System.in.read();
 		}
 		catch (final IOException e) {
 			LOGGER.error("Exception details: {}", e.getMessage(), e);

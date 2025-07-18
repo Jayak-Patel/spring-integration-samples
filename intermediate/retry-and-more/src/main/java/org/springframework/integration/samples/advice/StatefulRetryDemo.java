@@ -11,6 +11,13 @@ import org.springframework.integration.handler.advice.AbstractRequestHandlerAdvi
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
 
+/**
+ * Service for performing string transformations.
+ *
+ * @author Gary Russell
+ * @since 4.0
+ *
+ */
 @Component
 public class TransformationService {
 

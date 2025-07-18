@@ -100,7 +100,7 @@ public final class EmailParserUtils {
 					messageBuilder = MessageBuilder.withPayload(file)
 							.setHeader(FileHeaders.FILENAME, file.getName())
 							.setHeader(FileHeaders.ORIGINAL_FILENAME, filename);
-					//noinspection ConstantConditions,ConstantConditions
+					//noinspection ConstantConditions
 				}
 				finally {
 					// Do not log the filename as it's user-controlled data.

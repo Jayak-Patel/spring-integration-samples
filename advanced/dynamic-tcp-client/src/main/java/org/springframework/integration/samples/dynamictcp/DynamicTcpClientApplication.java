@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      https://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.springsource.org/spring-integration
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-package org.springframework.integration.samples.jpa;
+package org.springframework.integration.samples.dynamictcp;
 
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.integration.samples.jpa.domain.Student;
-import org.springframework.integration.samples.jpa.service.StudentService;
+import org.springframework.dao.DataAccessException;
+import org.springframework.integration.samples.dynamictcp.domain.Student;
+import org.springframework.integration.samples.dynamictcp.service.StudentService;
+import org.springframework.util.ErrorHandler;
 
 /**
  * Sample Application Context for demonstrating JPA Outbound Adapter
@@ -33,164 +38,246 @@ import org.springframework.integration.samples.jpa.service.StudentService;
  */
 public class Main {
 
+	private static final Log LOGGER = LogFactory.getLog(Main.class);
+
+	private static StudentService studentService;
+
+	private static final String INTEGRATION = "Integration";
+	private static final String SPRING = "Spring";
+	private static final String MALE = "Male";
+	private static final String STUDENT_INFO_FORMAT = "Student Id: {}, First Name: {}, Last Name: {}";
+
 	public static void main(String[] args) {
 
-		final AbstractApplicationContext context =
-				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/jpa-config.xml");
+		AbstractApplicationContext context = null;
+		try {
+			context = new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/jpa-config.xml");
+			context.registerShutdownHook();
+			studentService = context.getBean(StudentService.class);
 
-		context.registerShutdownHook();
+			printWelcomeMessage();
+			demoJpaOperations();
 
-		StudentService studentService = context.getBean(StudentService.class);
+		} catch (BeanCreationException bce) {
+			LOGGER.error("Failed to create one or more beans, application may not function correctly.", bce);
+		} catch (DataAccessException dae) {
+			LOGGER.error("Data access exception during JPA operations", dae);
+		} catch (Exception e) {
+			LOGGER.error("Exception during JPA demo operations", e);
+		} finally {
+			LOGGER.info("JPA Outbound Adapter Demo completed.");
+			if (context != null) {
+				try {
+					context.close();
+				} catch (Exception closeException) {
+					LOGGER.error("Exception during context closing", closeException);
+				}
+			}
+		}
 
-		System.out.println("\n========================================================="
-				+ "\n          Welcome to Spring Integration JPA Sample"
-				+ "\n    For more information please visit:"
-				+ "\n    https://www.springsource.org/spring-integration"
-				+ "\n=========================================================");
+	}
 
+	private static void printWelcomeMessage() {
+		LOGGER.info("""
+				=========================================================
+				          Welcome to Spring Integration JPA Sample
+				    For more information please visit:
+				    https://www.springsource.org/spring-integration
+				=========================================================
+				""");
+	}
 
-		System.out.println("\nStarting the JPA Outbound Adapter Demo now, "
-				+ "please wait for a while to see the results .....\n");
-
-		/*try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
-
-		System.out.println("Lets persist a student");
-		Student student = new Student();
-		student.setFirstName("Integration");
-		student.setLastName("Spring");
-		student.setGender("Male");
-
+	private static Student persistStudent() {
+		LOGGER.info("Lets persist a student");
+		Student student = createStudent(INTEGRATION, SPRING, MALE);
 		Student persisted = null;
-		if (student != null) {
+		try {
 			persisted = studentService.persist(student);
+			if (persisted == null) {
+				LOGGER.warn("Failed to persist student.");
+			} else {
+				LOGGER.info("Successfully persisted the student with id '{}'", persisted.getStudentId());
+			}
+		} catch (DataAccessException dae) {
+			LOGGER.error("Data access exception while persisting student", dae);
+		} catch (Exception e) {
+			LOGGER.error("Error persisting student", e);
+		}
+		return persisted;
+	}
+
+	private static Student createStudent(String firstName, String lastName, String gender) {
+		Student student = new Student();
+		student.setFirstName(firstName);
+		student.setLastName(lastName);
+		student.setGender(gender);
+		return student;
+	}
+
+	private static Student retrieveStudent(Student persistedStudent) {
+		LOGGER.info("Now lets retrieve the student just persisted");
+		if (persistedStudent == null) {
+			LOGGER.warn("persistedStudent is null, cannot retrieve.");
+			return null;
 		}
 
-		if (persisted != null) {
-			System.out.printf("Successfully persisted the student with id '%d'%n",
-					persisted.getStudentId());
-		}
-
-		/*try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
-
-		System.out.println("Now lets retrieve the student just persisted");
 		Student retrieved = null;
-		if (persisted != null) {
-			retrieved = studentService.find(persisted.getStudentId());
-		}
+		try {
+			retrieved = studentService.find(persistedStudent.getStudentId());
+			if (retrieved == null) {
+				LOGGER.warn("Could not retrieve student with id '{}'", persistedStudent.getStudentId());
+				return null;
+			}
 
-		if (retrieved != null) {
-			System.out.printf("Successfully retrieved student with id '%d' having first name '%s' and last name '%s'%n",
-					retrieved.getStudentId(), retrieved.getFirstName(), retrieved.getLastName());
+			logStudentInfo(retrieved);
+			return retrieved;
+		} catch (DataAccessException dae) {
+			LOGGER.error("Data access exception while retrieving student", dae);
+			return null;
+		} catch (Exception e) {
+			LOGGER.error("Error retrieving student", e);
+			return null;
 		}
-		else {
-			System.out.println("Student could not be retrieved");
+	}
+
+
+	private static void findAllStudents() {
+		LOGGER.info("Now lets find all students");
+		List<Student> studentList = null;
+		try {
+			studentList = studentService.findAll();
+		} catch (DataAccessException dae) {
+			LOGGER.error("Data access exception while finding all students", dae);
+			return;
+		} catch (Exception e) {
+			LOGGER.error("Error finding all students", e);
+			return;
 		}
+		printStudentList("All", studentList);
+	}
 
-		//Give some time for the flow to complete processing and then retrieve the student
-		/*try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
+	private static void findStudentsByFirstName(String firstName) {
+		LOGGER.info("Now lets find the student with first name {}", firstName);
+		List<Student> integrationList = null;
+		try {
+			integrationList = studentService.findByFirstName(firstName);
+		} catch (DataAccessException dae) {
+			LOGGER.error("Data access exception while finding students by first name", dae);
+			return;
+		} catch (Exception e) {
+			LOGGER.error("Error finding students by first name", e);
+			return;
+		}
+		printStudentList("with first name {0}", integrationList, firstName);
+	}
 
-		System.out.println("Now lets find all students");
-		List<Student> studentList = studentService.findAll();
-		System.out.printf("Total Students found %d%n", (studentList != null ? studentList.size() : 0));
-		if (studentList != null && studentList.size() > 0) {
-			System.out.println("Displaying all Students");
+	private static void findAllStudentsAscendingOrder() {
+		LOGGER.info("Now lets find all students in ascending order");
+		List<Student> studentListAsc = null;
+		try {
+			studentListAsc = studentService.findAllByOrderByFirstNameAsc();
+		} catch (DataAccessException dae) {
+			LOGGER.error("Data access exception while finding all students in ascending order", dae);
+			return;
+		} catch (Exception e) {
+			LOGGER.error("Error finding all students in ascending order", e);
+			return;
+		}
+		printStudentList("in ascending order", studentListAsc);
+	}
+
+	private static void printStudentList(String description, List<Student> studentList, Object... params) {
+		LOGGER.info("Total Students found {} {}", description, (studentList != null ? studentList.size() : 0));
+		if (studentList != null && !studentList.isEmpty()) {
+			LOGGER.info("Displaying all Students {}", description);
 			for (Student s : studentList) {
-				System.out.printf("Student Id: %d, First Name: %s, Last Name: %s%n",
-						s.getStudentId(), s.getFirstName(), s.getLastName());
+				logStudentInfo(s);
 			}
+		} else {
+			LOGGER.info("No students found to display.");
+		}
+	}
+
+	private static void updateStudentLastName(Student retrievedStudent) {
+		LOGGER.info("Now lets update the student's last name to {}", INTEGRATION);
+		if (retrievedStudent == null) {
+			LOGGER.warn("No student to update as retrievedStudent is null");
+			return;
 		}
 
-		/*try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
+		try {
+			Student updated = updateStudentLastNameInternal(retrievedStudent, INTEGRATION);
 
-		System.out.println("Now lets find the student with first name Integration");
-		List<Student> integrationList = studentService.findByFirstName("Integration");
-		System.out.printf("Total Students found with first name Integration %d%n", (integrationList != null ? integrationList.size() : 0));
-		if (integrationList != null && integrationList.size() > 0) {
-			System.out.println("Displaying all Students with first name Integration");
-			for (Student s : integrationList) {
-				System.out.printf("Student Id: %d, First Name: %s, Last Name: %s%n",
-						s.getStudentId(), s.getFirstName(), s.getLastName());
+			if (updated == null) {
+				LOGGER.warn("Student could not be updated");
+			} else {
+				logStudentInfo(updated);
 			}
+		} catch (DataAccessException e) {
+			LOGGER.error("Data access exception while updating student's last name", e);
+		} catch (Exception e) {
+			LOGGER.error("Error updating student", e);
+		}
+	}
+
+	private static Student updateStudentLastNameInternal(Student student, String lastName) {
+		student.setLastName(lastName);
+		try {
+			return studentService.update(student);
+		} catch (DataAccessException e) {
+			LOGGER.error("Data access exception during student update", e);
+			return null;
+		}
+		catch (Exception e) {
+			LOGGER.error("Error updating student: ", e);
+			return null;
 		}
 
-		/*try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
+	}
 
-		System.out.println("Now lets find all students in ascending order");
-		List<Student> studentListAsc = studentService.findAllByOrderByFirstNameAsc();
-		System.out.printf("Total Students found %d%n", (studentListAsc != null ? studentListAsc.size() : 0));
-		if (studentListAsc != null && studentListAsc.size() > 0) {
-			System.out.println("Displaying all Students in ascending order");
-			for (Student s : studentListAsc) {
-				System.out.printf("Student Id: %d, First Name: %s, Last Name: %s%n",
-						s.getStudentId(), s.getFirstName(), s.getLastName());
-			}
+	private static void deleteStudent(Student persistedStudent) {
+		LOGGER.info("Now lets delete a student with id {}",
+				(persistedStudent != null) ? persistedStudent.getStudentId() : "null");
+
+		if (persistedStudent == null) {
+			LOGGER.warn("No student to delete, persistedStudent is null");
+			return;
 		}
 
-		/*try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
-
-		System.out.println("Now lets update the student's last name to Integration");
-		Student updated = null;
-		if (retrieved != null) {
-			retrieved.setLastName("Integration");
-			updated = studentService.update(retrieved);
-		}
-
-		if (updated != null) {
-			System.out.printf("Successfully updated student with id '%d' having first name '%s' and last name '%s'%n",
-					updated.getStudentId(), updated.getFirstName(), updated.getLastName());
-		}
-		else {
-			System.out.println("Student could not be updated");
-		}
-
-		/*try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
-
-		System.out.println("Now lets delete a student with id " + (persisted != null ? persisted.getStudentId() : "null"));
-		if (persisted != null) {
-			if (studentService.delete(persisted.getStudentId())) {
-				System.out.printf("Successfully deleted student with id %d%n", persisted.getStudentId());
+		try {
+			boolean deleted = studentService.delete(persistedStudent.getStudentId());
+			if (deleted) {
+				LOGGER.info("Successfully deleted student with id {}", persistedStudent.getStudentId());
 			}
 			else {
-				System.out.println("Student could not be deleted");
+				LOGGER.info("Student could not be deleted");
 			}
+		} catch (DataAccessException e) {
+			LOGGER.error("Data access exception while deleting student", e);
+		} catch (Exception e) {
+			LOGGER.error("Error deleting student", e);
 		}
+	}
 
-		context.close();
+	private static void logStudentInfo(Student student) {
+		if (student == null) {
+			LOGGER.warn("Student object is null, cannot log information.");
+			return;
+		}
+		LOGGER.info(STUDENT_INFO_FORMAT,
+					student.getStudentId(), student.getFirstName(), student.getLastName());
+	}
+
+	private static void demoJpaOperations() {
+		LOGGER.info("Starting the JPA Outbound Adapter Demo now...");
+
+		Student persistedStudent = persistStudent();
+		Student retrievedStudent = retrieveStudent(persistedStudent);
+		findAllStudents();
+		findStudentsByFirstName(INTEGRATION);
+		findAllStudentsAscendingOrder();
+		updateStudentLastName(retrievedStudent);
+		deleteStudent(persistedStudent);
 
 	}
 }

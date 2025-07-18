@@ -1,11 +1,32 @@
---- a/basic/jdbc/src/main/java/org/springframework/integration/samples/jdbc/Main.java
-+++ b/basic/jdbc/src/main/java/org/springframework/integration/sts/Main.java
-@@ -17,7 +17,7 @@
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  */
--package org.springframework.integration.samples.jdbc;
-+package org.springframework.integration.sts;
- 
- import org.springframework.context.support.AbstractApplicationContext;
- import org.springframework.context.support.ClassPathXmlApplicationContext;
+package org.springframework.integration.sts;
+
+import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+public class Main {
+
+	public static void main(final String[] args) {
+
+		final AbstractApplicationContext context = new ClassPathXmlApplicationContext(
+				"/META-INF/spring/integration/jdbc-config.xml");
+
+		context.registerShutdownHook();
+
+		System.out.println("\n========================================================="
+				+ "\n                               Welcome to Spring Integration!"
+				+ "\n                                  ***JDBC DEMO***"
+				+ "\n    This demo illustrates how to use Spring Integration's JDBC components."
+				+ "\n"
+				+ "\n    For more information please visit:"
+				+ "\n    https://www.springsource.org/spring-integration"
+				+ "\n=========================================================\n");
+
+		System.out.println("Please enter some text and press <enter> to store it in database (or 'q' to quit).");
+
+		@SuppressWarnings("resource")
+		org.springframework.integration.samples.jdbc.console.ConsoleMessageSourceAdapter console = context.getBean(
+				"console", org.springframework.integration.samples.jdbc.console.ConsoleMessageSourceAdapter.class);
+		console.start();
+	}
+
+}

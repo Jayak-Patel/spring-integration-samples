@@ -1,11 +1,21 @@
---- a/basic/mqtt/src/test/java/org/springframework/integration/samples/mqtt/BrokerRunning.java
-+++ b/basic/mqtt/src/test/java/org/springframework/integration/sts/BrokerRunning.java
-@@ -17,7 +17,7 @@
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  */
--package org.springframework.integration.samples.mqtt;
-+package org.springframework.integration.sts;
- 
- import java.lang.annotation.ElementType;
- import java.lang.annotation.Retention;
+package org.springframework.integration.sts;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+import org.junit.jupiter.api.extension.ExtendWith;
+
+/**
+ * Annotation for tests that require the broker to be running.
+ *
+ * @author Gary Russell
+ * @since 4.0
+ *
+ */
+@Target({ ElementType.METHOD, ElementType.TYPE })
+@Retention(RetentionPolicy.RUNTIME)
+@ExtendWith(MqttBrokerAvailableCondition.class)
+public @interface BrokerRunning {
+}

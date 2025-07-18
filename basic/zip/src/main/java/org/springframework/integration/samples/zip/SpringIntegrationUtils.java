@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -20,7 +21,6 @@ import org.springframework.integration.mail.MailHeaders;
 import org.springframework.integration.support.AbstractIntegrationMessageBuilder;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.Message;
-import org.springframework.util.Assert;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.util.StringUtils;
 
@@ -57,96 +57,115 @@ public final class EmailParserUtils {
 	public static Collection<AbstractIntegrationMessageBuilder<?>> transformEmailMessageToAttachmentMessage(
 			Message<MimeMessage> message, boolean includeEmail) {
 		Assert.notNull(message, "'message' cannot be null");
-		Set<AbstractIntegrationMessageBuilder<?>> messages = new LinkedHashSet<>();
 		try {
-			MimeMessage mailMessage = message.getPayload();
-			Object content = mailMessage.getContent();
-			if (content instanceof Multipart multipart) {
-				for (int i = 0; i < multipart.getCount(); i++) {
-					BodyPart bodyPart = multipart.getBodyPart(i);
-					messages.addAll(transformBodyPartToMessage(bodyPart, message));
-				}
-			}
-			if (includeEmail) {
-				messages.add(MessageBuilder.fromMessage(message));
-			}
+			return doTransformEmailMessageToAttachmentMessage(message, includeEmail);
 		}
 		catch (Exception e) {
-			if (LOGGER.isErrorEnabled()) {
-				StringBuilder errorMessage = new StringBuilder();
-				errorMessage.append("Fail to transform message due to ");
-				errorMessage.append(e.getClass().getSimpleName());
-				errorMessage.append(" : ");
-				errorMessage.append(e.getMessage());
-				LOGGER.error(errorMessage.toString());
-			}
+			LOGGER.error("Fail to transform message due to " + e.getClass().getSimpleName() + " : " + e.getMessage(), e);
 			throw new IllegalStateException("Could not transform message", e);
+		}
+	}
+
+	private static Collection<AbstractIntegrationMessageBuilder<?>> doTransformEmailMessageToAttachmentMessage(
+			Message<MimeMessage> message, boolean includeEmail) throws MessagingException, IOException {
+
+		Set<AbstractIntegrationMessageBuilder<?>> messages = new LinkedHashSet<>();
+		MimeMessage mailMessage = message.getPayload();
+		Object content = mailMessage.getContent();
+
+		if (content instanceof Multipart multipart) {
+			for (int i = 0; i < multipart.getCount(); i++) {
+				BodyPart bodyPart = multipart.getBodyPart(i);
+				messages.addAll(transformBodyPartToMessage(bodyPart, message));
+			}
+		}
+
+		if (includeEmail) {
+			messages.add(MessageBuilder.fromMessage(message));
 		}
 		return messages;
 	}
 
+
 	private static Collection<AbstractIntegrationMessageBuilder<?>> transformBodyPartToMessage(BodyPart bodyPart,
 			Message<MimeMessage> mailMessage) throws MessagingException, IOException {
+
 		String disposition = bodyPart.getDisposition();
-		if (disposition == null || disposition.equalsIgnoreCase(Part.ATTACHMENT)) {
-			String filename = bodyPart.getFileName();
-			if (filename == null) {
-				filename = "attachment-" + System.currentTimeMillis();
-			}
-			AbstractIntegrationMessageBuilder<?> messageBuilder;
-			if (bodyPart instanceof MimeBodyPart mimeBodyPart) {
-				Path tempFile = Files.createTempFile("mailAttachments", null);
-				try (InputStream inputStream = mimeBodyPart.getInputStream()) {
-					File file = tempFile.toFile();
-					try (OutputStream outputStream = new FileOutputStream(file)) {
-						FileCopyUtils.copy(inputStream, outputStream);
-					}
-					messageBuilder = MessageBuilder.withPayload(file)
-							.setHeader(FileHeaders.FILENAME, file.getName())
-							.setHeader(FileHeaders.ORIGINAL_FILENAME, filename);
-					//noinspection ConstantConditions,ConstantConditions
-				}
-				finally {
-					// Do not log the filename as it's user-controlled data.
-					if (LOGGER.isDebugEnabled()) {
-						LOGGER.debug("Attachment processed");
-					}
-					Files.deleteIfExists(tempFile);
-				}
-			}
-			else {
-				messageBuilder = MessageBuilder.withPayload(bodyPart)
-						.setHeader(FileHeaders.FILENAME, filename);
-			}
-			if (StringUtils.hasText(bodyPart.getContentID())) {
-				messageBuilder.setHeader(MailHeaders.CONTENT_ID, bodyPart.getContentID());
-			}
-
-			@SuppressWarnings("unchecked")
-			List<String> headerList = (List<String>) mailMessage.getHeaders().get(MailHeaders.HEADERS);
-			if (headerList != null) {
-				headerList.forEach(header -> {
-					try {
-						messageBuilder.setHeader(header, mailMessage.getPayload().getHeader(header));
-					}
-					catch (MessagingException e) {
-						if (LOGGER.isWarnEnabled()) {
-							StringBuilder warnMessage = new StringBuilder(EXCEPTION_DETAILS);
-							warnMessage.append("Exception occurred while getting value for header ");
-							warnMessage.append(header);
-							LOGGER.warn(warnMessage.toString(), e);
-						}
-					}
-				});
-			}
-
-			// copy mail headers
-			messageBuilder.copyHeaders(mailMessage.getHeaders());
-			Set<AbstractIntegrationMessageBuilder<?>> result = new LinkedHashSet<>();
-			result.add(messageBuilder);
-			return result;
+		if (disposition != null && disposition.equalsIgnoreCase(Part.ATTACHMENT)) {
+			return createAttachmentMessage(bodyPart, mailMessage);
 		}
-		return new LinkedHashSet<>();
+		return Collections.emptySet();
+	}
+
+	private static Collection<AbstractIntegrationMessageBuilder<?>> createAttachmentMessage(BodyPart bodyPart,
+			Message<MimeMessage> mailMessage) throws MessagingException, IOException {
+		String filename = bodyPart.getFileName();
+		if (filename == null) {
+			filename = "attachment-" + System.currentTimeMillis();
+		}
+
+		AbstractIntegrationMessageBuilder<?> messageBuilder = createMessageBuilder(bodyPart, filename);
+		addContentIdHeader(bodyPart, messageBuilder);
+		copyMailHeaders(mailMessage, messageBuilder);
+		return Collections.singleton(messageBuilder);
+	}
+
+	private static AbstractIntegrationMessageBuilder<?> createMessageBuilder(BodyPart bodyPart, String filename)
+			throws MessagingException, IOException {
+
+		AbstractIntegrationMessageBuilder<?> messageBuilder;
+
+		if (bodyPart instanceof MimeBodyPart mimeBodyPart) {
+			Path tempFile = createTemporaryAttachmentFile(mimeBodyPart);
+			File file = tempFile.toFile();
+			messageBuilder = MessageBuilder.withPayload(file)
+					.setHeader(FileHeaders.FILENAME, file.getName())
+					.setHeader(FileHeaders.ORIGINAL_FILENAME, filename);
+		}
+		else {
+			messageBuilder = MessageBuilder.withPayload(bodyPart)
+					.setHeader(FileHeaders.FILENAME, filename);
+		}
+		return messageBuilder;
+	}
+
+	private static Path createTemporaryAttachmentFile(MimeBodyPart mimeBodyPart) throws IOException {
+		Path tempFile = Files.createTempFile("mailAttachments", null);
+		try (InputStream inputStream = mimeBodyPart.getInputStream();
+			 OutputStream outputStream = new FileOutputStream(tempFile.toFile())) {
+			FileCopyUtils.copy(inputStream, outputStream);
+		} finally {
+			logAttachmentProcessed();
+		}
+		return tempFile;
+	}
+
+	private static void logAttachmentProcessed() {
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("Attachment processed");
+		}
+	}
+
+	private static void addContentIdHeader(BodyPart bodyPart, AbstractIntegrationMessageBuilder<?> messageBuilder) throws MessagingException {
+		if (StringUtils.hasText(bodyPart.getContentID())) {
+			messageBuilder.setHeader(MailHeaders.CONTENT_ID, bodyPart.getContentID());
+		}
+	}
+
+	private static void copyMailHeaders(Message<MimeMessage> mailMessage, AbstractIntegrationMessageBuilder<?> messageBuilder) throws MessagingException {
+		@SuppressWarnings("unchecked")
+		List<String> headerList = (List<String>) mailMessage.getHeaders().get(MailHeaders.HEADERS);
+		if (headerList != null) {
+			for (String header : headerList) {
+				try {
+					messageBuilder.setHeader(header, mailMessage.getPayload().getHeader(header));
+				} catch (MessagingException e) {
+					LOGGER.warn("Exception occurred while getting value for header " + header, e);
+				}
+			}
+		}
+
+		messageBuilder.copyHeaders(mailMessage.getHeaders());
 	}
 
 }

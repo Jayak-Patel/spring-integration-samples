@@ -23,6 +23,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.messaging.Message;
 
 import javax.sql.DataSource;
+import java.util.Scanner;
 
 /**
  *
@@ -67,11 +68,19 @@ public final class Main {
 
 		LOGGER.info("Hit 'Enter' to terminate");
 
+		Scanner scanner = new Scanner(System.in);
 		try {
-			System.in.read();
+			if (scanner.hasNextLine()) {
+				scanner.nextLine();
+			}
 		}
-		catch (final IOException e) {
+		catch (final Exception e) {
 			LOGGER.error("Exception details: {}" , e.getMessage(), e);
+		} finally {
+			if (scanner != null){
+				scanner.close();
+			}
+
 		}
 
 		LOGGER.info("Exiting application. Shutting down context.");

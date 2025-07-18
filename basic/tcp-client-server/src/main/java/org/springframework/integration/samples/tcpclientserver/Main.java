@@ -1,5 +1,7 @@
-package org.springframework.integration.samples.tcpclientserver;
+package org.springframework.integration.sts;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
@@ -11,27 +13,29 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
  */
 public final class Main {
 
+	private static final Log LOGGER = LogFactory.getLog(Main.class);
+
 	private Main() { }
 
 	/**
 	 * Load the Spring Integration context and start the process.
 	 *
-	 * @param args - command line arguments
+	 * @param ignored command line arguments
 	 */
-	public static void main(final String... args) {
+	public static void main(final String... ignored) {
 
 		AbstractApplicationContext context = new ClassPathXmlApplicationContext(
 				"META-INF/spring/integration/*-context.xml");
 
 		context.registerShutdownHook();
 
-		System.out.println("Hit 'Enter' to terminate");
+		LOGGER.info("Hit 'Enter' to terminate");
 
 		try {
 			System.in.read();
 		}
 		catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error("Exception", e);
 		}
 
 		context.close();

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      https://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.springsource.org/spring-integration
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,9 +16,13 @@
 
 package org.springframework.integration.sts;
 
+import static org.junit.Assert.assertTrue;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.integration.handler.ReplyProducingMessageHandler;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -33,9 +37,12 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 public class AggregatorDemoTest {
 
+	@Autowired
+	private ReplyProducingMessageHandler outputChannelHandler;
+
 	@Test
 	public void testRunDemo() {
-		//Do nothing, the test context itself runs the demo
+		assertTrue(outputChannelHandler != null);
 	}
 
 }

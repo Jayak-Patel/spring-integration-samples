@@ -5,6 +5,8 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import java.io.IOException;
+
 /**
  *
  * @author Gunnar Hillert

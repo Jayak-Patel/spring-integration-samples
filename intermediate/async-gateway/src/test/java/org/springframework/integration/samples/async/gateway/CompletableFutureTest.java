@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -28,7 +27,7 @@ import org.springframework.messaging.Message;
 
 import javax.sql.DataSource;
 
-import org.junit.Assume;
+import org.junit.Assert;
 
 /**
  *
@@ -56,71 +55,4 @@ public final class Main {
 		welcomeMessage.append("    stored procedures:                                      \n");
 		welcomeMessage.append("                                                         \n");
 		welcomeMessage.append("        1. A Simple Stored Procedure Call                 \n");
-		welcomeMessage.append("        2. A Stored Procedure Output Parameter              \n");
-		welcomeMessage.append("        3. A Stored Procedure Returning a ResultSet         \n");
-		welcomeMessage.append("        4. A Stored Procedure with a Poller               \n");
-		welcomeMessage.append("                                                         \n");
-		welcomeMessage.append("=========================================================\n");
-
-		LOGGER.info(welcomeMessage.toString());
-
-		final AbstractApplicationContext context =
-				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/*-context.xml");
-
-		context.registerShutdownHook();
-
-		final StoredProcedureTest storedProcedureTest = (StoredProcedureTest) context.getBean("storedProcedureTest");
-
-		storedProcedureTest.runStoredProcedureTests();
-
-		LOGGER.info("Hit 'Enter' to terminate");
-
-		final CountDownLatch latch = new CountDownLatch(1);
-
-		Thread terminateThread = new Thread(() -> {
-			try {
-				System.in.read();
-				latch.countDown();
-			}
-			catch (final IOException e) {
-				LOGGER.error("Exception details: {}" , e.getMessage(), e); //added message argument
-			}
-		});
-
-		terminateThread.start();
-		boolean terminated = false;
-		try {
-			terminated = latch.await(60, TimeUnit.SECONDS); // Timeout after 60 seconds if no Enter key is pressed
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			LOGGER.error("Interrupted while waiting for termination", e);
-		}
-
-		Assert.assertTrue("Application terminated", terminated);
-	}
-
-}
-
-@org.junit.runner.RunWith(org.junit.runners.JUnit4.class)
-class StoredProcedureTest {
-
-    private static final Logger LOGGER = LogManager.getLogger();
-
-    @Test
-    public void dummyTest() {
-	    //This is a dummy test to avoid no-test-found issues.
-        Assert.assertTrue(true);
-    }
-
-    public void runStoredProcedureTests() {
-
-        LOGGER.info("Starting the Stored Procedure Demos now, "
-                + "please wait for a while to see the results .....\n");
-
-	    if (LOGGER.isInfoEnabled()){
-		    LOGGER.info("Hit 'Enter' to terminate");
-	    }
-		Assert.assertTrue(true); //Adding a dummy assert to avoid no-test-found issues
-    }
-
-}
+		welcomeMessage.append("        2. A Stored Procedure Output Parameter            

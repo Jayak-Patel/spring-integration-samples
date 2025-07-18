@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.integration.jms.JmsSendingMessageHandler;
+import org.springframework.jms.core.JmsTemplate;
 
 /**
  * Main class.
@@ -41,7 +43,7 @@ public final class Main {
 		super();
 	}
 
-	public static void main(final String[] args) {
+	public static void main(final String... args) {
 		LOGGER.info("Starting application");
 
 		final ConfigurableApplicationContext context =
@@ -50,18 +52,35 @@ public final class Main {
 
 		context.registerShutdownHook();
 
+		Scanner scanner = null;
 		try {
-			LOGGER.info("\n========================================================="
-					+ "\n                                                         "
-					+ "\n          Press 'Enter' to terminate the application.    "
-					+ "\n                                                         "
-					+ "\n=========================================================" );
+			LOGGER.info("""
 
-			new Scanner(System.in).nextLine();
-			//System.in.read(); // Removed unnecessary call
+					=========================================================
+					                                                         
+					          Press 'Enter' to terminate the application.    
+					                                                         
+					=========================================================
+					""");
+
+			scanner = new Scanner(System.in);
+			if (scanner.hasNextLine()) {
+				scanner.nextLine();
+			}
 		}
-		catch (final IOException e) {
+		catch (final Exception e) {
 			LOGGER.error("Exception details: {}", e.getMessage(), e);
+		}
+
+		finally {
+			if (scanner != null) {
+				try {
+					scanner.close();
+				}
+				catch (final Exception e) {
+					LOGGER.warn("Exception while closing scanner: {}", e.getMessage(), e);
+				}
+			}
 		}
 
 		LOGGER.info("Exiting application. Shutting down context.");

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      https://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.springsource.org/spring-integration
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -43,7 +43,7 @@ public final class Main {
 		super();
 	}
 
-	public static void main(final String... args) {
+	public static void main(final String... ignored) {
 
 		final AbstractApplicationContext context =
 				new ClassPathXmlApplicationContext("classpath:META-INF/spring/integration/jms-context.xml");
@@ -61,17 +61,20 @@ public final class Main {
 		JmsSendingMessageHandler gateway = new JmsSendingMessageHandler(jmsTemplate);
 		gateway.setDefaultDestinationName("queue");
 
-		LOGGER.info("\n========================================================="
-				+ "\n                                                         "
-				+ "\n          Welcome to Spring Integration JMS Sample     "
-				+ "\n                                                         "
-				+ "\n    This sample requires a JMS broker. Running the     "
-				+ "\n    sample with the default configuration will attempt "
-				+ "\n    to connect to a broker running on localhost:61616. "
-				+ "\n    See the readme file for instructions on starting    "
-				+ "\n    a broker.                                           "
-				+ "\n                                                         "
-				+ "\n=========================================================" );
+		LOGGER.info("""
+
+				=========================================================
+				                                                         
+				          Welcome to Spring Integration JMS Sample     
+				                                                         
+				    This sample requires a JMS broker. Running the     
+				    sample with the default configuration will attempt 
+				    to connect to a broker running on localhost:61616. 
+				    See the readme file for instructions on starting    
+				    a broker.                                           
+				                                                         
+				=========================================================
+				""");
 
 		LOGGER.info("Press 'Enter' to exit.");
 

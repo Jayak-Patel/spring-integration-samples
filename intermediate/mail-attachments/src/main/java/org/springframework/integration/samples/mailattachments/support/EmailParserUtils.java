@@ -2,7 +2,6 @@ package org.springframework.integration.sts;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -20,7 +19,6 @@ import org.springframework.integration.mail.MailHeaders;
 import org.springframework.integration.support.AbstractIntegrationMessageBuilder;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.Message;
-import org.springframework.util.Assert;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.util.StringUtils;
 
@@ -43,7 +41,8 @@ public final class EmailParserUtils {
 	private static final Logger LOGGER = LogManager.getLogger();
 
 	private static final String EXCEPTION_DETAILS = "Exception details: ";
-	private static final String ATTACHMENT_PROCESSED_MESSAGE = "Attachment processed";
+	private static final String ATTACHMENT_PROCESSED_MESSAGE = "Attachment processed - temporary file created.";
+	private static final String HEADER_RETRIVAL_EXCEPTION = "Exception occurred while getting value for header - check debug level for the header name.";
 
 	private EmailParserUtils() {
 		super();
@@ -65,7 +64,7 @@ public final class EmailParserUtils {
 			if (content instanceof Multipart multipart) {
 				for (int i = 0; i < multipart.getCount(); i++) {
 					BodyPart bodyPart = multipart.getBodyPart(i);
-					messages.addAll(transformBodyPartToMessage(bodyPart, message));
+					messages.addAll(transformBodyPartToMessage(bodyPart));
 				}
 			}
 			if (includeEmail) {
@@ -82,92 +81,105 @@ public final class EmailParserUtils {
 		return messages;
 	}
 
-	private static Collection<AbstractIntegrationMessageBuilder<?>> transformBodyPartToMessage(BodyPart bodyPart,
-			Message<MimeMessage> _mailMessage) throws MessagingException { //NOSONAR - Remove this unused method parameter "mailMessage".
+	private static Collection<AbstractIntegrationMessageBuilder<?>> transformBodyPartToMessage(BodyPart bodyPart) throws MessagingException {
 		String disposition = bodyPart.getDisposition();
+		String filename = bodyPart.getFileName();
 		if (disposition == null || disposition.equalsIgnoreCase(Part.ATTACHMENT)) {
-			String filename = bodyPart.getFileName();
+
 			if (filename == null) {
 				filename = "attachment-" + System.currentTimeMillis();
 			}
-			
+
 			AbstractIntegrationMessageBuilder<?> messageBuilder;
 			Path tempFile = null;
 			OutputStream outputStream = null;
-			try (InputStream inputStream = mimeBodyPart.getInputStream()) {
-				tempFile = Files.createTempFile("mailAttachments", null);
-				File file = tempFile.toFile();
-				outputStream = new FileOutputStream(file);
-				FileCopyUtils.copy(inputStream, outputStream);
-				messageBuilder = MessageBuilder.withPayload(file)
-						.setHeader(FileHeaders.FILENAME, file.getName())
-						.setHeader(FileHeaders.ORIGINAL_FILENAME, filename);
-				//noinspection ConstantConditions,ConstantConditions
-			}
-			catch (IOException e) {
-				throw new IllegalStateException("Failed to process attachment", e);
-			}
-			finally {
-				//Do not log the filename as it's user-controlled data.
-				if (LOGGER.isDebugEnabled()) {
-					LOGGER.debug(ATTACHMENT_PROCESSED_MESSAGE);
+			if (bodyPart instanceof MimeBodyPart mimeBodyPart) {
+				try (InputStream inputStream = mimeBodyPart.getInputStream()) {
+					tempFile = Files.createTempFile("mailAttachments", null);
+					File file = tempFile.toFile();
+					outputStream = new FileOutputStream(file);
+					FileCopyUtils.copy(inputStream, outputStream);
+					messageBuilder = MessageBuilder.withPayload(file)
+							.setHeader(FileHeaders.FILENAME, file.getName())
+							.setHeader(FileHeaders.ORIGINAL_FILENAME, filename);
 				}
-				if (outputStream != null) {
-					try {
-						outputStream.close();
-					}
-					catch (IOException e) {
-						// ignore
-						if (LOGGER.isWarnEnabled()) {
-							LOGGER.warn("Exception during output stream close: {}", e.getMessage(), e);
-						}
-					}
+				catch (IOException e) {
+					throw new IllegalStateException("Failed to process attachment", e);
 				}
-				
-				if (tempFile != null) {
-					try {
-						Files.deleteIfExists(tempFile);
+				finally {
+					//Do not log the filename as it's user-controlled data.
+					if (LOGGER.isDebugEnabled()) {
+						LOGGER.debug(ATTACHMENT_PROCESSED_MESSAGE);
 					}
-					catch (IOException e) {
-						//ignore
-						if (LOGGER.isWarnEnabled()) {
-							LOGGER.warn("Exception during temp file deletion: {}", e.getMessage(), e);
-						}
+					if (outputStream != null) {
+						closeStream(outputStream);
+					}
+
+					if (tempFile != null) {
+						deleteFile(tempFile);
 					}
 				}
 			}
-			
 			else {
+				List<String> headerList = null;
+				try {
+					headerList = (List<String>) ((MimeMessage) (bodyPart.getParent())).getHeaders().get(MailHeaders.HEADERS);
+				} catch (MessagingException e) {
+					LOGGER.warn(EXCEPTION_DETAILS + "Failed to retrieve headers from MimeMessage", e);
+				}
 				messageBuilder = MessageBuilder.withPayload(bodyPart)
 						.setHeader(FileHeaders.FILENAME, filename);
+
+				if (headerList != null) {
+					for (String header : headerList) {
+						try {
+							//messageBuilder.setHeader(header, (Object) ((MimeMessage) (bodyPart.getParent())).getHeader(header));
+							if(LOGGER.isDebugEnabled()){
+								LOGGER.debug(HEADER_RETRIVAL_EXCEPTION + " Header Key: "+ header);
+							}
+						} catch (Exception e) {
+							if (LOGGER.isWarnEnabled()) {
+								LOGGER.warn(EXCEPTION_DETAILS + "Exception occurred while getting value for header {}", e.getMessage());
+							}
+						}
+					}
+				}
+
+
 			}
 			if (StringUtils.hasText(bodyPart.getContentID())) {
 				messageBuilder.setHeader(MailHeaders.CONTENT_ID, bodyPart.getContentID());
 			}
 
-			@SuppressWarnings("unchecked")
-			List<String> headerList = (List<String>) _mailMessage.getHeaders().get(MailHeaders.HEADERS);
-			if (headerList != null) {
-				headerList.forEach(header -> {
-					try {
-						messageBuilder.setHeader(header, (Object) _mailMessage.getPayload().getHeader(header));
-					}
-					catch (MessagingException e) {
-						if (LOGGER.isWarnEnabled()) {
-							//Removed filename from log message
-							LOGGER.warn(EXCEPTION_DETAILS + "Exception occurred while getting value for header {}", header, e);
-						}
-					}
-				});
-			}
-
-			// copy mail headers
-			messageBuilder.copyHeaders(_mailMessage.getHeaders()); // Replaced mailMessage with _mailMessage
 			Set<AbstractIntegrationMessageBuilder<?>> result = new LinkedHashSet<>();
 			result.add(messageBuilder);
 			return result;
 		}
 		return new LinkedHashSet<>();
+	}
+
+	private static void closeStream(OutputStream outputStream) {
+		try {
+			outputStream.close();
+		}
+		catch (IOException e) {
+			// ignore
+			if (LOGGER.isWarnEnabled()) {
+				LOGGER.warn("Exception during output stream close: {}", e.getMessage());
+			}
+		}
+	}
+
+	private static void deleteFile(Path tempFile) {
+		try {
+			Files.deleteIfExists(tempFile);
+		}
+		catch (IOException e) {
+			//ignore
+			if (LOGGER.isWarnEnabled()) {
+				LOGGER.warn("Exception during temp file deletion: {}", e.getMessage());
+			}
+		}
 	}
 
 }

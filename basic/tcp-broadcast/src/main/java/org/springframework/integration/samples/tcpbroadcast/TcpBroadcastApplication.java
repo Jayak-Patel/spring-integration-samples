@@ -82,28 +82,35 @@ public class BrokerRunning extends TestWatcher {
 
 	private boolean checkBrokerRunning() {
 		Socket socket = null;
+		boolean running = false;
 		try {
 			socket = new Socket("localhost", port);
-			return true;
+			running = true;
 		}
 		catch (Exception e) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Exception while checking broker", e);
 			}
-			return false;
+
 		}
 		finally {
-			if (socket != null) {
-				try {
-					socket.close();
-				}
-				catch (Exception e) {
-					if (logger.isDebugEnabled()) {
-						logger.debug("Exception while closing socket", e);
-					}
+			running = closeSocket(socket, running);
+		}
+		return running;
+	}
+
+	private boolean closeSocket(Socket socket, boolean running){
+		if (socket != null) {
+			try {
+				socket.close();
+			}
+			catch (Exception e) {
+				if (logger.isDebugEnabled()) {
+					logger.debug("Exception while closing socket", e);
 				}
 			}
 		}
+		return running;
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)

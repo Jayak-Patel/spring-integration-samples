@@ -27,6 +27,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 @Component
 public class CircuitBreakerDemo implements ApplicationRunner {

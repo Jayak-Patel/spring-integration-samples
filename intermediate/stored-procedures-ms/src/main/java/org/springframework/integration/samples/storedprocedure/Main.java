@@ -1,9 +1,11 @@
-package org.springframework.integration.samples.mongodb.outbound;
+package org.springframework.integration.sts;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import java.io.IOException;
 
 /**
  *
