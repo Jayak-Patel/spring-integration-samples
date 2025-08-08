@@ -16,7 +16,6 @@
 
 package org.springframework.integration.samples.sftp;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,8 +57,8 @@ public class SftpOutboundGatewaySampleTests {
 
         try {
             // remove the previous output files if necessary
-            deleteFileQuietly(tmpDir.resolve(file1));
-            deleteFileQuietly(tmpDir.resolve(file2));
+            deleteFile(tmpDir.resolve(file1));
+            deleteFile(tmpDir.resolve(file2));
 
             @SuppressWarnings("unchecked")
             SessionFactory<SftpClient.DirEntry> sessionFactory = ctx.getBean(CachingSessionFactory.class);
@@ -79,17 +78,17 @@ public class SftpOutboundGatewaySampleTests {
         finally {
             SftpTestUtils.cleanUp(template, file1, file2);
             ctx.close();
-            deleteFileQuietly(tmpDir.resolve(file1));
-            deleteFileQuietly(tmpDir.resolve(file2));
+            deleteFile(tmpDir.resolve(file1));
+            deleteFile(tmpDir.resolve(file2));
         }
     }
 
-    private static void deleteFileQuietly(Path path) {
+    private static void deleteFile(Path path) {
         try {
             Files.delete(path);
         }
         catch (IOException e) {
-            // Ignore the exception
+            // Log the error or handle it in an appropriate way
         }
     }
 
