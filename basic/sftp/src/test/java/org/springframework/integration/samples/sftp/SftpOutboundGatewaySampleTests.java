@@ -89,6 +89,7 @@ public class SftpOutboundGatewaySampleTests {
         }
         catch (IOException e) {
             // Log the error or handle it in an appropriate way
+            e.printStackTrace(); // or use a logging framework
         }
     }
 
