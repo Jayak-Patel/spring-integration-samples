@@ -30,7 +30,9 @@ public class ApplicationTests {
 
 	@Test
 	public void testWebSockets() {
-
+		// This method is empty, as it is not necessary to include any test logic here.
+		// The purpose of this test is to ensure that the application context can be loaded successfully,
+		// which is already covered by the @SpringBootTest annotation.
 	}
 
 }
