@@ -39,60 +39,60 @@ import org.springframework.integration.file.FileWritingMessageHandler;
  */
 public final class SpringIntegrationUtils {
 
-	private static final Log logger = LogFactory.getLog(SpringIntegrationUtils.class);
+    private static final Log logger = LogFactory.getLog(SpringIntegrationUtils.class);
 
-	private SpringIntegrationUtils() { }
+    private SpringIntegrationUtils() { }
 
-	/**
-	 * Helper Method to dynamically determine and display input and output
-	 * directories as defined in the Spring Integration context.
-	 *
-	 * @param context Spring Application Context
-	 */
-	public static void displayDirectories(final ApplicationContext context) {
+    /**
+     * Helper Method to dynamically determine and display input and output
+     * directories as defined in the Spring Integration context.
+     *
+     * @param context Spring Application Context
+     */
+    public static void displayDirectories(final ApplicationContext context) {
 
-		Map<String, FileReadingMessageSource> fileReadingMessageSources = context.getBeansOfType(FileReadingMessageSource.class);
+        Map<String, FileReadingMessageSource> fileReadingMessageSources = context.getBeansOfType(FileReadingMessageSource.class);
 
-		List<String> inputDirectories = new ArrayList<>();
+        List<String> inputDirectories = new ArrayList<>();
 
-		for (FileReadingMessageSource source : fileReadingMessageSources.values()) {
-			final File inDir = (File) new DirectFieldAccessor(source).getPropertyValue("directory");
-			StringBuilder inputDirBuilder = new StringBuilder();
-			inputDirBuilder.append("\n    Input directory is: '");
-			inputDirBuilder.append(inDir.getAbsolutePath());
-			inputDirBuilder.append("'");
-			inputDirectories.add(inputDirBuilder.toString());
-		}
+        for (FileReadingMessageSource source : fileReadingMessageSources.values()) {
+            final File inDir = (File) new DirectFieldAccessor(source).getPropertyValue("directory");
+            StringBuilder inputDirBuilder = new StringBuilder();
+            inputDirBuilder.append("\n    Input directory is: '");
+            inputDirBuilder.append(inDir.getAbsolutePath());
+            inputDirBuilder.append("'");
+            inputDirectories.add(inputDirBuilder.toString());
+        }
 
 
-		Map<String, FileWritingMessageHandler> fileWritingMessageHandlers = context.getBeansOfType(FileWritingMessageHandler.class);
+        Map<String, FileWritingMessageHandler> fileWritingMessageHandlers = context.getBeansOfType(FileWritingMessageHandler.class);
 
-		List<String> outputDirectories = new ArrayList<>();
+        List<String> outputDirectories = new ArrayList<>();
 
-		for (final FileWritingMessageHandler messageHandler : fileWritingMessageHandlers.values()) {
-			final Expression outDir = (Expression) new DirectFieldAccessor(messageHandler).getPropertyValue("destinationDirectoryExpression");
-			StringBuilder outputDirBuilder = new StringBuilder();
-			outputDirBuilder.append("\n    Output directory is: '");
-			outputDirBuilder.append(outDir.getExpressionString());
-			outputDirBuilder.append("'");
-			outputDirectories.add(outputDirBuilder.toString());
-		}
+        for (final FileWritingMessageHandler messageHandler : fileWritingMessageHandlers.values()) {
+            final Expression outDir = (Expression) new DirectFieldAccessor(messageHandler).getPropertyValue("destinationDirectoryExpression");
+            StringBuilder outputDirBuilder = new StringBuilder();
+            outputDirBuilder.append("\n    Output directory is: '");
+            outputDirBuilder.append(outDir.getExpressionString());
+            outputDirBuilder.append("'");
+            outputDirectories.add(outputDirBuilder.toString());
+        }
 
-		final StringBuilder stringBuilder = new StringBuilder();
-		stringBuilder.append("\n=========================================================");
+        final StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("\n=========================================================");
 
-		for (final String inputDirectory : inputDirectories) {
-			stringBuilder.append(inputDirectory);
-		}
+        for (final String inputDirectory : inputDirectories) {
+            stringBuilder.append(inputDirectory);
+        }
 
-		for (final String outputDirectory : outputDirectories) {
-			stringBuilder.append(outputDirectory);
-		}
+        for (final String outputDirectory : outputDirectories) {
+            stringBuilder.append(outputDirectory);
+        }
 
-		stringBuilder.append("\n\n=========================================================");
+        stringBuilder.append("\n\n=========================================================");
 
-		logger.info(stringBuilder.toString());
+        logger.info(stringBuilder.toString());
 
-	}
+    }
 
 }
