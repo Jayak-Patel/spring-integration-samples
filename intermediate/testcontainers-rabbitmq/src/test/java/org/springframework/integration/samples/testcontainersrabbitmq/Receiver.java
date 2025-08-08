@@ -40,7 +40,6 @@ public class Receiver {
 	private static final Map<Integer, String> messages;
 
 	static {
-
 		messages = new HashMap<>();
 
 		messages.put(1, "This is message 1");
@@ -48,7 +47,6 @@ public class Receiver {
 		messages.put(3, "This is message 3");
 		messages.put(4, "This is message 4");
 		messages.put(5, "This is message 5");
-
 	}
 
 	@PostConstruct
@@ -67,16 +65,11 @@ public class Receiver {
 	public Response handleMessage(Request request) {
 		log.info("handleMessage : received message [{}]", request);
 
-		Integer messageId;
-		if (null != request.getMessageId()) {
-
+		int messageId;
+		if (request.getMessageId() != null) {
 			messageId = request.getMessageId();
-
-		}
-		else {
-
-			messageId = new Random().ints(1, 5).findFirst().getAsInt();
-
+		} else {
+			messageId = new Random().nextInt(5) + 1;
 		}
 
 		return new Response(request.getId(), messages.get(messageId));
