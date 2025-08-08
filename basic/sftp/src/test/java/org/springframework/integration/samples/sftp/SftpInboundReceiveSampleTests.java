@@ -39,6 +39,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class SftpInboundReceiveSampleTests {
 
+    private static final String LOCAL_DIR = "local-dir";
+
 	@Test
 	public void runDemo() {
 		ConfigurableApplicationContext context =
@@ -47,8 +49,8 @@ public class SftpInboundReceiveSampleTests {
 		String file1 = "a.txt";
 		String file2 = "b.txt";
 		String file3 = "c.bar";
-		new File("local-dir", file1).delete();
-		new File("local-dir", file2).delete();
+		new File(LOCAL_DIR, file1).delete();
+		new File(LOCAL_DIR, file2).delete();
 		try {
 			PollableChannel localFileChannel = context.getBean("receiveChannel", PollableChannel.class);
 			@SuppressWarnings("unchecked")
@@ -72,8 +74,8 @@ public class SftpInboundReceiveSampleTests {
 		finally {
 			SftpTestUtils.cleanUp(template, file1, file2, file3);
 			context.close();
-			assertThat(new File("local-dir", file1).delete()).isTrue();
-			assertThat(new File("local-dir", file2).delete()).isTrue();
+			assertThat(new File(LOCAL_DIR, file1).delete()).isTrue();
+			assertThat(new File(LOCAL_DIR, file2).delete()).isTrue();
 		}
 	}
 
