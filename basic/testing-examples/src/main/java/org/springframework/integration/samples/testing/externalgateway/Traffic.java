@@ -17,6 +17,7 @@ package org.springframework.integration.samples.testing.externalgateway;
 
 import java.util.HashMap;
 import java.util.Map;
+
 /**
  * 
  * @author Oleg Zhurakousky
@@ -25,17 +26,17 @@ import java.util.Map;
  */
 public class Traffic {
 
-	private final Map<String, String> incidents = new HashMap<String, String>();
+    private final Map<String, String> incidents = new HashMap<>();
 
-	public void addIncident(String title, String description){
-		incidents.put(title, description);
-	}
+    public void addIncident(String title, String description) {
+        incidents.put(title, description);
+    }
 
-	public Map<String, String> getIncidents(){
-		return incidents;
-	}
+    public Map<String, String> getIncidents() {
+        return incidents;
+    }
 
-	public String toString(){
-		return "Traffic: {" + incidents.keySet().toString() + "}";
-	}
+    public String toString() {
+        return "Traffic: {" + incidents.keySet().toString() + "}";
+    }
 }
