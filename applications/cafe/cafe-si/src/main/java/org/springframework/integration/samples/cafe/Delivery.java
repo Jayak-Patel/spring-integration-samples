@@ -32,7 +32,7 @@ public class Delivery implements Serializable {
 
 	private static final String SEPARATOR = "-----------------------";
 
-	private transient ArrayList<Drink> deliveredDrinks;
+	private transient List<Drink> deliveredDrinks;
 
 	private int orderNumber;
 
