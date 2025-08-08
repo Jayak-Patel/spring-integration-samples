@@ -57,7 +57,11 @@ public final class SpringIntegrationUtils {
 
 		for (FileReadingMessageSource source : fileReadingMessageSources.values()) {
 			final File inDir = (File) new DirectFieldAccessor(source).getPropertyValue("directory");
-			inputDirectories.add(inDir.getAbsolutePath());
+			StringBuilder inputDirBuilder = new StringBuilder();
+			inputDirBuilder.append("\n    Input directory is: '");
+			inputDirBuilder.append(inDir.getAbsolutePath());
+			inputDirBuilder.append("'");
+			inputDirectories.add(inputDirBuilder.toString());
 		}
 
 
@@ -67,24 +71,23 @@ public final class SpringIntegrationUtils {
 
 		for (final FileWritingMessageHandler messageHandler : fileWritingMessageHandlers.values()) {
 			final Expression outDir = (Expression) new DirectFieldAccessor(messageHandler).getPropertyValue("destinationDirectoryExpression");
-			outputDirectories.add(outDir.getExpressionString());
+			StringBuilder outputDirBuilder = new StringBuilder();
+			outputDirBuilder.append("\n    Output directory is: '");
+			outputDirBuilder.append(outDir.getExpressionString());
+			outputDirBuilder.append("'");
+			outputDirectories.add(outputDirBuilder.toString());
 		}
 
 		final StringBuilder stringBuilder = new StringBuilder();
 
 		stringBuilder.append("\n=========================================================");
-		stringBuilder.append("\n");
 
 		for (final String inputDirectory : inputDirectories) {
-			stringBuilder.append("\n    Input directory is: '");
 			stringBuilder.append(inputDirectory);
-			stringBuilder.append("'");
 		}
 
 		for (final String outputDirectory : outputDirectories) {
-			stringBuilder.append("\n    Output directory is: '");
 			stringBuilder.append(outputDirectory);
-			stringBuilder.append("'");
 		}
 
 		stringBuilder.append("\n\n=========================================================");
