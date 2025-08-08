@@ -16,7 +16,6 @@
 
 package org.springframework.integration.samples.sftp;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -82,10 +81,10 @@ public class SftpInboundReceiveSampleTests {
 			SftpTestUtils.cleanUp(template, file1, file2, file3);
 			context.close();
 			try {
-				Files.deleteIfExists(file1Path);
-				Files.deleteIfExists(file2Path);
+				Files.delete(file1Path);
+				Files.delete(file2Path);
 			} catch (IOException e) {
-				System.out.println("Failed to delete local files: " + e.getMessage());
+				System.err.println("Failed to delete local files: " + e.getMessage());
 			}
 		}
 	}
