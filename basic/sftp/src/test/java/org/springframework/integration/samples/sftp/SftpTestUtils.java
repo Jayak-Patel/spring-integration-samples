@@ -63,11 +63,17 @@ public class SftpTestUtils {
 						session.remove("si.sftp.sample/" + fileNames[i]);
 					}
 					catch (IOException e) {
+						// Ignore the exception as the file may not exist
 					}
 				}
 
-				// should be empty
-				session.rmdir("si.sftp.sample");
+				// The directory should be empty now
+				try {
+					session.rmdir("si.sftp.sample");
+				}
+				catch (IOException e) {
+					// Ignore the exception as the directory may not exist
+				}
 				return null;
 			});
 		}
