@@ -17,6 +17,10 @@
 package org.springframework.integration.samples.sftp;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.apache.sshd.sftp.client.SftpClient;
@@ -42,42 +46,51 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class SftpOutboundGatewaySampleTests {
 
-	@Test
-	public void testLsGetRm() {
-		ConfigurableApplicationContext ctx = new ClassPathXmlApplicationContext(
-				"classpath:/META-INF/spring/integration/SftpOutboundGatewaySample-context.xml");
-		ToSftpFlowGateway toFtpFlow = ctx.getBean(ToSftpFlowGateway.class);
-		RemoteFileTemplate<SftpClient.DirEntry> template = null;
-		String file1 = "1.ftptest";
-		String file2 = "2.ftptest";
-		File tmpDir = new File(System.getProperty("java.io.tmpdir"));
+    @Test
+    public void testLsGetRm() {
+        ConfigurableApplicationContext ctx = new ClassPathXmlApplicationContext(
+                "classpath:/META-INF/spring/integration/SftpOutboundGatewaySample-context.xml");
+        ToSftpFlowGateway toFtpFlow = ctx.getBean(ToSftpFlowGateway.class);
+        RemoteFileTemplate<SftpClient.DirEntry> template = null;
+        String file1 = "1.ftptest";
+        String file2 = "2.ftptest";
+        Path tmpDir = Paths.get(System.getProperty("java.io.tmpdir"));
 
-		try {
-			// remove the previous output files if necessary
-			new File(tmpDir, file1).delete();
-			new File(tmpDir, file2).delete();
+        try {
+            // remove the previous output files if necessary
+            deleteFileQuietly(tmpDir.resolve(file1));
+            deleteFileQuietly(tmpDir.resolve(file2));
 
-			@SuppressWarnings("unchecked")
-			SessionFactory<SftpClient.DirEntry> sessionFactory = ctx.getBean(CachingSessionFactory.class);
-			template = new RemoteFileTemplate<>(sessionFactory);
-			SftpTestUtils.createTestFiles(template, file1, file2);
+            @SuppressWarnings("unchecked")
+            SessionFactory<SftpClient.DirEntry> sessionFactory = ctx.getBean(CachingSessionFactory.class);
+            template = new RemoteFileTemplate<>(sessionFactory);
+            SftpTestUtils.createTestFiles(template, file1, file2);
 
-			// execute the flow (ls, get, rm, aggregate results)
-			List<Boolean> rmResults = toFtpFlow.lsGetAndRmFiles("si.sftp.sample");
+            // execute the flow (ls, get, rm, aggregate results)
+            List<Boolean> rmResults = toFtpFlow.lsGetAndRmFiles("si.sftp.sample");
 
-			//Check everything went as expected, and clean up
-			assertThat(rmResults).hasSize(2);
-			for (Boolean result : rmResults) {
-				assertThat(result).isTrue();
-			}
+            // Check everything went as expected, and clean up
+            assertThat(rmResults).hasSize(2);
+            for (Boolean result : rmResults) {
+                assertThat(result).isTrue();
+            }
 
-		}
-		finally {
-			SftpTestUtils.cleanUp(template, file1, file2);
-			ctx.close();
-			assertThat(new File(tmpDir, file1).delete()).isTrue();
-			assertThat(new File(tmpDir, file2).delete()).isTrue();
-		}
-	}
+        }
+        finally {
+            SftpTestUtils.cleanUp(template, file1, file2);
+            ctx.close();
+            deleteFileQuietly(tmpDir.resolve(file1));
+            deleteFileQuietly(tmpDir.resolve(file2));
+        }
+    }
+
+    private static void deleteFileQuietly(Path path) {
+        try {
+            Files.delete(path);
+        }
+        catch (IOException e) {
+            // Ignore the exception
+        }
+    }
 
 }
