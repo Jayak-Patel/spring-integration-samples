@@ -39,23 +39,24 @@ import org.springframework.util.StringUtils;
 public class CafeDemoApp {
 
     private static final Logger logger = LoggerFactory.getLogger(CafeDemoApp.class);
+    private static final String INVALID_COMMAND_LINE_ARGUMENT = "missing or invalid command line argument [groovy,ruby,python]";
 
     public static void main(String[] args) {
 
         if (args.length != 1) {
-            logger.error("missing or invalid command line argument [groovy,ruby,python]");
+            logger.error(INVALID_COMMAND_LINE_ARGUMENT);
             System.exit(1);
         }
         String lang = args[0];
 
         if (!StringUtils.hasText(lang)){
-            logger.error("missing or invalid command line argument [groovy,ruby,python]");
+            logger.error(INVALID_COMMAND_LINE_ARGUMENT);
             System.exit(1);
         }
 
         lang = lang.toLowerCase();
         if (!isValidLanguage(lang)){
-            logger.error("missing or invalid command line argument [groovy,ruby,python]");
+            logger.error(INVALID_COMMAND_LINE_ARGUMENT);
             System.exit(1);
         }
 
