@@ -42,7 +42,6 @@ public class CafeDemoApp {
     private static final String INVALID_COMMAND_LINE_ARGUMENT = "missing or invalid command line argument [groovy,ruby,python]";
 
     public static void main(String[] args) {
-
         if (args.length != 1) {
             logger.error(INVALID_COMMAND_LINE_ARGUMENT);
             System.exit(1);
@@ -65,9 +64,8 @@ public class CafeDemoApp {
          * corresponding scripting implementation
          */
 
-        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext();
+        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/META-INF/spring/integration/cafeDemo.xml");
         ctx.getEnvironment().setActiveProfiles(lang);
-        ctx.setConfigLocation("/META-INF/spring/integration/cafeDemo.xml");
         ctx.refresh();
     }
 
