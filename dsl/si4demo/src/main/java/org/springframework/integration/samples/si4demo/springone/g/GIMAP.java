@@ -16,6 +16,8 @@
 
 package org.springframework.integration.samples.si4demo.springone.g;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -36,41 +38,42 @@ import org.springframework.integration.samples.si4demo.springone.GMailProperties
  */
 @Configuration
 @EnableConfigurationProperties(GMailProperties.class)
-
 @EnableAutoConfiguration
 public class GIMAP {
 
-	@Autowired
-	GMailProperties gmail;
+    private static final Logger logger = LoggerFactory.getLogger(GIMAP.class);
 
-	public static void main(String[] args) throws Exception {
-		ConfigurableApplicationContext ctx =
-				new SpringApplicationBuilder(GIMAP.class)
-						.web(WebApplicationType.NONE)
-						.run(args);
-		System.out.println("Hit Enter to terminate");
-		System.in.read();
-		ctx.close();
-	}
+    @Autowired
+    GMailProperties gmail;
 
-	@Bean
-	IntegrationFlow imapIdle() {
-		return IntegrationFlow.from(Mail.imapIdleAdapter(
-								"imaps://"
-										+ gmail.getUser().replaceAll("@", "%40")
-										+ ":"
-										+ gmail.getPassword()
-										+ "@imap.gmail.com:993/INBOX")
-						.id("imapIn")
-						.autoStartup(true)
-						.javaMailProperties(p ->
-								p.put("mail.debug", "false")))
-				.enrichHeaders(s -> s.headerExpressions(h -> h
-						.put(MailHeaders.SUBJECT, "payload.subject")
-						.put(MailHeaders.FROM, "payload.from[0].toString()")))
-				.transform("payload.content")
-				.handle(System.out::println)
-				.get();
-	}
+    public static void main(String[] args) throws Exception {
+        ConfigurableApplicationContext ctx =
+                new SpringApplicationBuilder(GIMAP.class)
+                        .web(WebApplicationType.NONE)
+                        .run(args);
+        logger.info("Hit Enter to terminate");
+        System.in.read();
+        ctx.close();
+    }
+
+    @Bean
+    IntegrationFlow imapIdle() {
+        return IntegrationFlow.from(Mail.imapIdleAdapter(
+                        "imaps://"
+                                + gmail.getUser().replaceAll("@", "%40")
+                                + ":"
+                                + gmail.getPassword()
+                                + "@imap.gmail.com:993/INBOX")
+                .id("imapIn")
+                .autoStartup(true)
+                .javaMailProperties(p ->
+                        p.put("mail.debug", "false")))
+                .enrichHeaders(s -> s.headerExpressions(h -> h
+                        .put(MailHeaders.SUBJECT, "payload.subject")
+                        .put(MailHeaders.FROM, "payload.from[0].toString()")))
+                .transform("payload.content")
+                .handle(payload -> logger.info(payload.toString()))
+                .get();
+    }
 
 }
