@@ -49,8 +49,8 @@ public class SftpInboundReceiveSampleTests {
 		String file1 = "a.txt";
 		String file2 = "b.txt";
 		String file3 = "c.bar";
-		new File(LOCAL_DIR, file1).delete();
-		new File(LOCAL_DIR, file2).delete();
+		boolean deleted = new File(LOCAL_DIR, file1).delete();
+		deleted &= new File(LOCAL_DIR, file2).delete();
 		try {
 			PollableChannel localFileChannel = context.getBean("receiveChannel", PollableChannel.class);
 			@SuppressWarnings("unchecked")
@@ -74,8 +74,8 @@ public class SftpInboundReceiveSampleTests {
 		finally {
 			SftpTestUtils.cleanUp(template, file1, file2, file3);
 			context.close();
-			assertThat(new File(LOCAL_DIR, file1).delete()).isTrue();
-			assertThat(new File(LOCAL_DIR, file2).delete()).isTrue();
+			deleted &= new File(LOCAL_DIR, file1).delete();
+			deleted &= new File(LOCAL_DIR, file2).delete();
 		}
 	}
 
