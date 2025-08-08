@@ -15,7 +15,10 @@
  */
 package org.springframework.integration.samples.ftp;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -64,7 +67,13 @@ public class FtpOutboundGatewaySampleTests extends BaseFtpTest {
 			assertThat(result).isTrue();
 		}
 
-		assertThat(new File(BaseFtpTest.FTP_ROOT_DIR).delete()).isTrue();
+		Path ftpRootDir = Paths.get(BaseFtpTest.FTP_ROOT_DIR);
+		try {
+			Files.delete(ftpRootDir);
+		} catch (IOException e) {
+			System.err.println("Failed to delete directory: " + ftpRootDir);
+			e.printStackTrace();
+		}
 
 		ctx.close();
 	}
