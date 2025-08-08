@@ -28,13 +28,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = Application.class)
 public class ApplicationTests {
 
-	@Test
-	public void testWebSockets() {
-		/*
-		 * This method is intentionally left empty, as the purpose of this test is to ensure that the
-		 * application context can be loaded successfully, which is already covered by the @SpringBootTest
-		 * annotation. No additional test logic is required in this case.
-		 */
-	}
+    @Test
+    public void testWebSockets() {
+        /*
+         * This method is intentionally left empty, as the purpose of this test is to ensure that the
+         * application context can be loaded successfully, which is already covered by the @SpringBootTest
+         * annotation. No additional test logic is required in this case.
+         */
+    }
 
 }
