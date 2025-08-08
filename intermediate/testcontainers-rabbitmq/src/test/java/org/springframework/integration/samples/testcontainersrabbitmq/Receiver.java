@@ -49,6 +49,8 @@ public class Receiver {
 		messages.put(5, "This is message 5");
 	}
 
+	private static final Random random = new Random();
+
 	@PostConstruct
 	public void initialize() {
 		log.info("Receiver initialized!");
@@ -65,12 +67,7 @@ public class Receiver {
 	public Response handleMessage(Request request) {
 		log.info("handleMessage : received message [{}]", request);
 
-		int messageId;
-		if (request.getMessageId() != null) {
-			messageId = request.getMessageId();
-		} else {
-			messageId = new Random().nextInt(5) + 1;
-		}
+		int messageId = request.getMessageId() != null ? request.getMessageId() : random.nextInt(5) + 1;
 
 		return new Response(request.getId(), messages.get(messageId));
 	}
