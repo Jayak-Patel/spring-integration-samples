@@ -77,8 +77,9 @@ public class SftpInboundReceiveSampleTests {
 			SftpTestUtils.cleanUp(template, file1, file2, file3);
 			context.close();
 			if (!deleted) {
-				new File(LOCAL_DIR, file1).delete();
-				new File(LOCAL_DIR, file2).delete();
+				if (!new File(LOCAL_DIR, file1).delete() || !new File(LOCAL_DIR, file2).delete()) {
+					System.out.println("Failed to delete local files");
+				}
 			}
 		}
 	}
