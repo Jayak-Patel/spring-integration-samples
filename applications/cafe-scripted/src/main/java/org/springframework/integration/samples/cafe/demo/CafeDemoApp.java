@@ -43,17 +43,20 @@ public class CafeDemoApp {
     public static void main(String[] args) {
 
         if (args.length != 1) {
-            usage();
+            logger.error("missing or invalid command line argument [groovy,ruby,python]");
+            System.exit(1);
         }
         String lang = args[0];
 
         if (!StringUtils.hasText(lang)){
-            usage();
+            logger.error("missing or invalid command line argument [groovy,ruby,python]");
+            System.exit(1);
         }
 
         lang = lang.toLowerCase();
         if (!isValidLanguage(lang)){
-            usage();
+            logger.error("missing or invalid command line argument [groovy,ruby,python]");
+            System.exit(1);
         }
 
         /*
@@ -69,10 +72,5 @@ public class CafeDemoApp {
 
     private static boolean isValidLanguage(String lang) {
         return "groovy".equals(lang) || "ruby".equals(lang) || "python".equals(lang);
-    }
-
-    private static void usage() {
-        logger.error("missing or invalid command line argument [groovy,ruby,python]");
-        System.exit(1);
     }
 }
