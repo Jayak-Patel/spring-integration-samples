@@ -21,6 +21,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.junit.jupiter.api.Test;
 
 import org.springframework.context.ConfigurableApplicationContext;
@@ -49,33 +52,33 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class FtpOutboundGatewaySampleTests extends BaseFtpTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(FtpOutboundGatewaySampleTests.class);
 
-	@Test
-	public void testLsGetRm() throws Exception {
-		ConfigurableApplicationContext ctx = new ClassPathXmlApplicationContext(
-				"classpath:/META-INF/spring/integration/FtpOutboundGatewaySample-context.xml");
+    @Test
+    public void testLsGetRm() throws Exception {
+        ConfigurableApplicationContext ctx = new ClassPathXmlApplicationContext(
+                "classpath:/META-INF/spring/integration/FtpOutboundGatewaySample-context.xml");
 
-		final ToFtpFlowGateway toFtpFlow = ctx.getBean(ToFtpFlowGateway.class);
+        final ToFtpFlowGateway toFtpFlow = ctx.getBean(ToFtpFlowGateway.class);
 
-		// execute the flow (ls, get, rm, aggregate results)
-		List<Boolean> rmResults = toFtpFlow.lsGetAndRmFiles("/");
+        // execute the flow (ls, get, rm, aggregate results)
+        List<Boolean> rmResults = toFtpFlow.lsGetAndRmFiles("/");
 
-		//Check everything went as expected, and clean up
-		assertThat(rmResults).hasSize(2);
+        //Check everything went as expected, and clean up
+        assertThat(rmResults).hasSize(2);
 
-		for (Boolean result : rmResults) {
-			assertThat(result).isTrue();
-		}
+        for (Boolean result : rmResults) {
+            assertThat(result).isTrue();
+        }
 
-		Path ftpRootDir = Paths.get(BaseFtpTest.FTP_ROOT_DIR);
-		try {
-			Files.delete(ftpRootDir);
-		} catch (IOException e) {
-			System.err.println("Failed to delete directory: " + ftpRootDir);
-			e.printStackTrace();
-		}
+        Path ftpRootDir = Paths.get(BaseFtpTest.FTP_ROOT_DIR);
+        try {
+            Files.delete(ftpRootDir);
+        } catch (IOException e) {
+            logger.error("Failed to delete directory: {}", ftpRootDir, e);
+        }
 
-		ctx.close();
-	}
+        ctx.close();
+    }
 
 }
