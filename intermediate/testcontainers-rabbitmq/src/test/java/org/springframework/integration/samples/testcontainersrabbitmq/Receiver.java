@@ -39,7 +39,7 @@ public class Receiver {
 
     private static final Map<Integer, String> messages = new HashMap<>();
 
-    private static final Random random = new Random();
+    private final Random random = new Random();
 
     static {
         messages.put(1, "This is message 1");
