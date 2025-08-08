@@ -16,6 +16,8 @@
 
 package org.springframework.integration.samples.cafe.demo;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.util.StringUtils;
 
@@ -35,6 +37,8 @@ import org.springframework.util.StringUtils;
  * @author David Turanski
  */
 public class CafeDemoApp {
+
+    private static final Logger logger = LoggerFactory.getLogger(CafeDemoApp.class);
 
     public static void main(String[] args) {
 
@@ -68,7 +72,7 @@ public class CafeDemoApp {
     }
 
     private static void usage() {
-        System.out.println("missing or invalid command line argument [groovy,ruby,python]");
+        logger.error("missing or invalid command line argument [groovy,ruby,python]");
         System.exit(1);
     }
 }
