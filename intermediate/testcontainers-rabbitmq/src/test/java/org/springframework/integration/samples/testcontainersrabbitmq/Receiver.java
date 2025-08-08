@@ -37,13 +37,11 @@ public class Receiver {
 
     private static final Logger log = LoggerFactory.getLogger(Receiver.class);
 
-    private static final Map<Integer, String> messages;
+    private static final Map<Integer, String> messages = new HashMap<>();
 
     private static final Random random = new Random();
 
     static {
-        messages = new HashMap<>();
-
         messages.put(1, "This is message 1");
         messages.put(2, "This is message 2");
         messages.put(3, "This is message 3");
