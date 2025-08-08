@@ -35,41 +35,41 @@ import jakarta.annotation.PostConstruct;
 @Component
 public class Receiver {
 
-	private static final Logger log = LoggerFactory.getLogger(Receiver.class);
+    private static final Logger log = LoggerFactory.getLogger(Receiver.class);
 
-	private static final Map<Integer, String> messages;
+    private static final Map<Integer, String> messages;
 
-	static {
-		messages = new HashMap<>();
+    private static final Random random = new Random();
 
-		messages.put(1, "This is message 1");
-		messages.put(2, "This is message 2");
-		messages.put(3, "This is message 3");
-		messages.put(4, "This is message 4");
-		messages.put(5, "This is message 5");
-	}
+    static {
+        messages = new HashMap<>();
 
-	private static final Random random = new Random();
+        messages.put(1, "This is message 1");
+        messages.put(2, "This is message 2");
+        messages.put(3, "This is message 3");
+        messages.put(4, "This is message 4");
+        messages.put(5, "This is message 5");
+    }
 
-	@PostConstruct
-	public void initialize() {
-		log.info("Receiver initialized!");
-	}
+    @PostConstruct
+    public void initialize() {
+        log.info("Receiver initialized!");
+    }
 
-	@RabbitListener(
-			bindings = @QueueBinding(
-					value = @Queue(value = "downstream.request", durable = "true"),
-					exchange = @Exchange(value = "downstream", ignoreDeclarationExceptions = "true", type = "topic"),
-					key = "downstream.request.#"
-			)
-	)
-	@SendTo("downstream.results")
-	public Response handleMessage(Request request) {
-		log.info("handleMessage : received message [{}]", request);
+    @RabbitListener(
+            bindings = @QueueBinding(
+                    value = @Queue(value = "downstream.request", durable = "true"),
+                    exchange = @Exchange(value = "downstream", ignoreDeclarationExceptions = "true", type = "topic"),
+                    key = "downstream.request.#"
+            )
+    )
+    @SendTo("downstream.results")
+    public Response handleMessage(Request request) {
+        log.info("handleMessage : received message [{}]", request);
 
-		int messageId = request.getMessageId() != null ? request.getMessageId() : random.nextInt(5) + 1;
+        int messageId = request.getMessageId() != null ? request.getMessageId() : random.nextInt(5) + 1;
 
-		return new Response(request.getId(), messages.get(messageId));
-	}
+        return new Response(request.getId(), messages.get(messageId));
+    }
 
 }
