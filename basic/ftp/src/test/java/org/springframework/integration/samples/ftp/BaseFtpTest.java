@@ -50,7 +50,6 @@ public abstract class BaseFtpTest {
 
 	public static final String SERVER_PORT_SYSTEM_PROPERTY = "availableServerPort";
 
-	@TempDir
 	public static final File temporaryFolder = new File(LOCAL_FTP_TEMP_DIR);
 
 	public static FtpServer server;
