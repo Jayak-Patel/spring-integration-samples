@@ -28,47 +28,42 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class UserServiceTest {
 
-	@Test
-	public void testStartupOfSpringIntegrationContext() throws Exception {
-		final ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
-				"/META-INF/spring/integration/spring-integration-context.xml", UserServiceTest.class);
-		Thread.sleep(2000);
-		context.close();
-	}
+    private static final String SPRING_INTEGRATION_CONTEXT_XML = "/META-INF/spring/integration/spring-integration-context.xml";
 
-	@Test
-	public void testExecuteFindUser() {
+    @Test
+    public void testStartupOfSpringIntegrationContext() throws Exception {
+        final ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(SPRING_INTEGRATION_CONTEXT_XML, UserServiceTest.class);
+        Thread.sleep(2000);
+        context.close();
+    }
 
-		final ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
-				"/META-INF/spring/integration/spring-integration-context.xml", UserServiceTest.class);
+    @Test
+    public void testExecuteFindUser() {
+        final ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(SPRING_INTEGRATION_CONTEXT_XML, UserServiceTest.class);
 
-		final UserService service = context.getBean(UserService.class);
+        final UserService service = context.getBean(UserService.class);
 
-		User user = new User("foo", null, null);
-		final User fullUser = service.findUser(user);
+        User user = new User("foo", null, null);
+        final User fullUser = service.findUser(user);
 
-		assertThat(fullUser.getUsername()).isEqualTo("foo");
-		assertThat(fullUser.getEmail()).isEqualTo("foo@springintegration.org");
-		assertThat(fullUser.getPassword()).isEqualTo("secret");
-		context.close();
+        assertThat(fullUser.getUsername()).isEqualTo("foo");
+        assertThat(fullUser.getEmail()).isEqualTo("foo@springintegration.org");
+        assertThat(fullUser.getPassword()).isEqualTo("secret");
+        context.close();
+    }
 
-	}
+    @Test
+    public void testExecuteFindUserByUsername() {
+        final ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(SPRING_INTEGRATION_CONTEXT_XML, UserServiceTest.class);
 
-	@Test
-	public void testExecuteFindUserByUsername() {
-		final ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
-				"/META-INF/spring/integration/spring-integration-context.xml", UserServiceTest.class);
+        final UserService service = context.getBean(UserService.class);
 
-		final UserService service = context.getBean(UserService.class);
+        User user = new User("foo", null, null);
+        final User fullUser = service.findUserByUsername(user);
 
-		User user = new User("foo", null, null);
-		final User fullUser = service.findUserByUsername(user);
-
-		assertThat(fullUser.getUsername()).isEqualTo("foo");
-		assertThat(fullUser.getEmail()).isEqualTo("foo@springintegration.org");
-		assertThat(fullUser.getPassword()).isEqualTo("secret");
-		context.close();
-
-	}
-
+        assertThat(fullUser.getUsername()).isEqualTo("foo");
+        assertThat(fullUser.getEmail()).isEqualTo("foo@springintegration.org");
+        assertThat(fullUser.getPassword()).isEqualTo("secret");
+        context.close();
+    }
 }
