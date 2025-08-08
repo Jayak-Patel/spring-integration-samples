@@ -16,7 +16,6 @@
 
 package org.springframework.integration.samples.cafe;
 
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,12 +28,11 @@ import java.util.List;
  */
 public class Delivery implements Serializable {
 
-	@Serial
 	private static final long serialVersionUID = 1L;
 
 	private static final String SEPARATOR = "-----------------------";
 
-	private ArrayList<Drink> deliveredDrinks;
+	private transient ArrayList<Drink> deliveredDrinks;
 
 	private int orderNumber;
 
