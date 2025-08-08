@@ -17,6 +17,10 @@
 package org.springframework.integration.samples.sftp;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.apache.sshd.sftp.client.SftpClient;
 import org.junit.jupiter.api.Test;
@@ -49,7 +53,8 @@ public class SftpInboundReceiveSampleTests {
 		String file1 = "a.txt";
 		String file2 = "b.txt";
 		String file3 = "c.bar";
-		boolean deleted = new File(LOCAL_DIR, file1).delete() && new File(LOCAL_DIR, file2).delete();
+		Path file1Path = Paths.get(LOCAL_DIR, file1);
+		Path file2Path = Paths.get(LOCAL_DIR, file2);
 		try {
 			PollableChannel localFileChannel = context.getBean("receiveChannel", PollableChannel.class);
 			@SuppressWarnings("unchecked")
@@ -76,10 +81,11 @@ public class SftpInboundReceiveSampleTests {
 		finally {
 			SftpTestUtils.cleanUp(template, file1, file2, file3);
 			context.close();
-			if (!deleted) {
-				if (!new File(LOCAL_DIR, file1).delete() || !new File(LOCAL_DIR, file2).delete()) {
-					System.out.println("Failed to delete local files");
-				}
+			try {
+				Files.deleteIfExists(file1Path);
+				Files.deleteIfExists(file2Path);
+			} catch (IOException e) {
+				System.out.println("Failed to delete local files: " + e.getMessage());
 			}
 		}
 	}
