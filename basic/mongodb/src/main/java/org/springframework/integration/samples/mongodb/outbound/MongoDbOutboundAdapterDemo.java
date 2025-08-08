@@ -28,24 +28,18 @@ import org.springframework.messaging.support.GenericMessage;
  */
 public class MongoDbOutboundAdapterDemo {
 
-    /**
-     * @param args
-     */
     public static void main(String[] args) throws Exception {
         DemoUtils.prepareMongoFactory(); // will clean up MongoDB
         new MongoDbOutboundAdapterDemo().runDefaultAdapter();
     }
 
     public void runDefaultAdapter() throws Exception {
-
-        @SuppressWarnings("resource")
-        ClassPathXmlApplicationContext context =
-                new ClassPathXmlApplicationContext("mongodb-out-config.xml", MongoDbOutboundAdapterDemo.class);
-
-        MessageChannel messageChannel = context.getBean("defaultAdapter", MessageChannel.class);
-        messageChannel.send(new GenericMessage<>(this.createPersonA()));
-        messageChannel.send(new GenericMessage<>(this.createPersonB()));
-        messageChannel.send(new GenericMessage<>(this.createPersonC()));
+        try (ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("mongodb-out-config.xml", MongoDbOutboundAdapterDemo.class)) {
+            MessageChannel messageChannel = context.getBean("defaultAdapter", MessageChannel.class);
+            messageChannel.send(new GenericMessage<>(createPersonA()));
+            messageChannel.send(new GenericMessage<>(createPersonB()));
+            messageChannel.send(new GenericMessage<>(createPersonC()));
+        }
     }
 
     private Person createPersonA() {
