@@ -38,7 +38,7 @@ public class FileProcessingTest {
 
     private static final int FILE_COUNT = 5;
 
-    private final Log logger = LogFactory.getLog(FileProcessingTest.class);
+    private static final Log logger = LogFactory.getLog(FileProcessingTest.class);
 
     @BeforeEach
     public void createDirectory() {
