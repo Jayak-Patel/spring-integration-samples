@@ -64,16 +64,14 @@ public class SftpInboundReceiveSampleTests {
 			SourcePollingChannelAdapter adapter = context.getBean(SourcePollingChannelAdapter.class);
 			adapter.start();
 
-			Message<?> received = localFileChannel.receive();
-			if (received != null) {
+			Message<?> received;
+			if ((received = localFileChannel.receive()) != null) {
 				System.out.println("Received first file message: " + received);
 			}
-			received = localFileChannel.receive();
-			if (received != null) {
+			if ((received = localFileChannel.receive()) != null) {
 				System.out.println("Received second file message: " + received);
 			}
-			received = localFileChannel.receive(1000);
-			if (received == null) {
+			if ((received = localFileChannel.receive(1000)) == null) {
 				System.out.println("No third file was received as expected");
 			}
 		}
