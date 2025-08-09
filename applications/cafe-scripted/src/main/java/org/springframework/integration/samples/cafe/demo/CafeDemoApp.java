@@ -48,13 +48,7 @@ public class CafeDemoApp {
         }
         String lang = args[0];
 
-        if (!StringUtils.hasText(lang)){
-            logger.error(INVALID_COMMAND_LINE_ARGUMENT);
-            System.exit(1);
-        }
-
-        lang = lang.toLowerCase();
-        if (!isValidLanguage(lang)){
+        if (!StringUtils.hasText(lang) || !isValidLanguage(lang.toLowerCase())) {
             logger.error(INVALID_COMMAND_LINE_ARGUMENT);
             System.exit(1);
         }
@@ -65,7 +59,7 @@ public class CafeDemoApp {
          */
 
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/META-INF/spring/integration/cafeDemo.xml");
-        ctx.getEnvironment().setActiveProfiles(lang);
+        ctx.getEnvironment().setActiveProfiles(lang.toLowerCase());
         ctx.refresh();
     }
 
