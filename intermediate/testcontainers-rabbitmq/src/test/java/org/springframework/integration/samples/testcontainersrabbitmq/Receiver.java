@@ -16,9 +16,9 @@
 
 package org.springframework.integration.samples.testcontainersrabbitmq;
 
-import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +37,7 @@ public class Receiver {
 
     private static final Map<Integer, String> messages = new HashMap<>();
 
-    private static final SecureRandom random = new SecureRandom();
+    private static final Random random = new Random();
 
     static {
         messages.put(1, "This is message 1");
