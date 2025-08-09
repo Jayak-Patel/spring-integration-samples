@@ -16,9 +16,9 @@
 
 package org.springframework.integration.samples.testcontainersrabbitmq;
 
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
-import java.security.SecureRandom;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +29,6 @@ import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Component;
-
-import jakarta.annotation.PostConstruct;
 
 @Component
 public class Receiver {
@@ -47,11 +45,6 @@ public class Receiver {
         messages.put(3, "This is message 3");
         messages.put(4, "This is message 4");
         messages.put(5, "This is message 5");
-    }
-
-    @PostConstruct
-    public void initialize() {
-        log.info("Receiver initialized!");
     }
 
     @RabbitListener(

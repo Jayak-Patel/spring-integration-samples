@@ -82,7 +82,7 @@ public class SftpInboundReceiveSampleTests {
 				Files.delete(file1Path);
 				Files.delete(file2Path);
 			} catch (IOException e) {
-				e.printStackTrace();
+				System.err.println("Error deleting local files: " + e.getMessage());
 			}
 		}
 	}
