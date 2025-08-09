@@ -78,7 +78,7 @@ public final class SpringIntegrationUtils {
             outputDirectories.add(outputDirBuilder.toString());
         }
 
-        final StringBuilder stringBuilder = new StringBuilder();
+        StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("\n=========================================================");
 
         for (final String inputDirectory : inputDirectories) {
