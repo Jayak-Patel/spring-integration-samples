@@ -42,58 +42,58 @@ import org.springframework.integration.samples.ftp.support.TestUserManager;
  */
 public abstract class BaseFtpTest {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(BaseFtpTest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(BaseFtpTest.class);
 
-	public static final String FTP_ROOT_DIR = "target" + File.separator + "ftproot";
+    public static final String FTP_ROOT_DIR = "target" + File.separator + "ftproot";
 
-	public static final String LOCAL_FTP_TEMP_DIR = "target" + File.separator + "local-ftp-temp";
+    public static final String LOCAL_FTP_TEMP_DIR = "target" + File.separator + "local-ftp-temp";
 
-	public static final String SERVER_PORT_SYSTEM_PROPERTY = "availableServerPort";
+    public static final String SERVER_PORT_SYSTEM_PROPERTY = "availableServerPort";
 
-	public static final File temporaryFolder = new File(LOCAL_FTP_TEMP_DIR);
+    public static final File temporaryFolder = new File(LOCAL_FTP_TEMP_DIR);
 
-	public static FtpServer server;
+    public static FtpServer server;
 
-	@BeforeAll
-	public static void setupFtpServer() throws FtpException {
+    @BeforeAll
+    public static void setupFtpServer() throws FtpException {
 
-		Integer availableServerSocket;
+        Integer availableServerSocket;
 
-		if (System.getProperty(SERVER_PORT_SYSTEM_PROPERTY) == null) {
-			availableServerSocket = 0;
-		}
-		else {
-			availableServerSocket = Integer.valueOf(System.getProperty(SERVER_PORT_SYSTEM_PROPERTY));
-		}
+        if (System.getProperty(SERVER_PORT_SYSTEM_PROPERTY) == null) {
+            availableServerSocket = 0;
+        }
+        else {
+            availableServerSocket = Integer.valueOf(System.getProperty(SERVER_PORT_SYSTEM_PROPERTY));
+        }
 
-		File ftpRoot = new File(FTP_ROOT_DIR);
-		ftpRoot.mkdirs();
+        File ftpRoot = new File(FTP_ROOT_DIR);
+        ftpRoot.mkdirs();
 
-		TestUserManager userManager = new TestUserManager(ftpRoot.getAbsolutePath());
+        TestUserManager userManager = new TestUserManager(ftpRoot.getAbsolutePath());
 
-		FtpServerFactory serverFactory = new FtpServerFactory();
-		serverFactory.setUserManager(userManager);
-		ListenerFactory factory = new ListenerFactory();
+        FtpServerFactory serverFactory = new FtpServerFactory();
+        serverFactory.setUserManager(userManager);
+        ListenerFactory factory = new ListenerFactory();
 
-		factory.setPort(availableServerSocket);
-		factory.setIdleTimeout(600);
-		serverFactory.addListener("default", factory.createListener());
+        factory.setPort(availableServerSocket);
+        factory.setIdleTimeout(600);
+        serverFactory.addListener("default", factory.createListener());
 
-		server = serverFactory.createServer();
+        server = serverFactory.createServer();
 
-		server.start();
+        server.start();
 
-		Listener listener = serverFactory.getListeners().values().iterator().next();
-		availableServerSocket = listener.getPort();
-		LOGGER.info("Using open server port..." + availableServerSocket);
-		System.setProperty(SERVER_PORT_SYSTEM_PROPERTY, availableServerSocket.toString());
-	}
+        Listener listener = serverFactory.getListeners().values().iterator().next();
+        availableServerSocket = listener.getPort();
+        LOGGER.info("Using open server port..." + availableServerSocket);
+        System.setProperty(SERVER_PORT_SYSTEM_PROPERTY, availableServerSocket.toString());
+    }
 
-	@AfterAll
-	public static void shutDown() {
-		server.stop();
-		FileUtils.deleteQuietly(new File(FTP_ROOT_DIR));
-		FileUtils.deleteQuietly(new File(LOCAL_FTP_TEMP_DIR));
-	}
+    @AfterAll
+    public static void shutDown() {
+        server.stop();
+        FileUtils.deleteQuietly(new File(FTP_ROOT_DIR));
+        FileUtils.deleteQuietly(new File(LOCAL_FTP_TEMP_DIR));
+    }
 
 }
