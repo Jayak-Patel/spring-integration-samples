@@ -67,8 +67,8 @@ public final class Main {
 
 		LOGGER.info(LINE + NEWLINE + "\n    Please press 'q + Enter' to quit the application.    " + NEWLINE + LINE);
 
-		System.out.print("Please enter 'list' and press <enter> to get a list of coffees.");
-		System.out.print("Enter a coffee id, e.g. '1' and press <enter> to get a description.\n\n");
+		LOGGER.info("Please enter 'list' and press <enter> to get a list of coffees.");
+		LOGGER.info("Enter a coffee id, e.g. '1' and press <enter> to get a description.\n");
 
 		while (!scanner.hasNext("q")) {
 
@@ -78,16 +78,16 @@ public final class Main {
 				List<CoffeeBeverage> coffeeBeverages = service.findAllCoffeeBeverages();
 
 				for (CoffeeBeverage coffeeBeverage : coffeeBeverages) {
-					System.out.println(String.format("%s - %s", coffeeBeverage.getId(), coffeeBeverage.getName()));
+					LOGGER.info(String.format("%s - %s", coffeeBeverage.getId(), coffeeBeverage.getName()));
 				}
 
 			}
 			else {
-				System.out.println("Retrieving coffee information...");
+				LOGGER.info("Retrieving coffee information...");
 				String coffeeDescription = service.findCoffeeBeverage(Integer.valueOf(input));
 
-				System.out.println(String.format("Searched for '%s' - Found: '%s'.", input, coffeeDescription));
-				System.out.print("To try again, please enter another coffee beverage and press <enter>:\n\n");
+				LOGGER.info(String.format("Searched for '%s' - Found: '%s'.", input, coffeeDescription));
+				LOGGER.info("To try again, please enter another coffee beverage and press <enter>:\n");
 			}
 
 		}
