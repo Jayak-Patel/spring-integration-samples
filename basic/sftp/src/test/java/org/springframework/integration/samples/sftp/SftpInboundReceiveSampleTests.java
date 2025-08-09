@@ -44,47 +44,46 @@ public class SftpInboundReceiveSampleTests {
 
     private static final String LOCAL_DIR = "local-dir";
 
-	@Test
-	public void runDemo() {
-		ConfigurableApplicationContext context =
-				new ClassPathXmlApplicationContext("/META-INF/spring/integration/SftpInboundReceiveSample-context.xml", this.getClass());
-		RemoteFileTemplate<SftpClient.DirEntry> template = null;
-		String file1 = "a.txt";
-		String file2 = "b.txt";
-		String file3 = "c.bar";
-		Path file1Path = Paths.get(LOCAL_DIR, file1);
-		Path file2Path = Paths.get(LOCAL_DIR, file2);
-		try {
-			PollableChannel localFileChannel = context.getBean("receiveChannel", PollableChannel.class);
-			@SuppressWarnings("unchecked")
-			SessionFactory<SftpClient.DirEntry> sessionFactory = context.getBean(CachingSessionFactory.class);
-			template = new RemoteFileTemplate<>(sessionFactory);
-			SftpTestUtils.createTestFiles(template, file1, file2, file3);
+    @Test
+    public void runDemo() {
+        ConfigurableApplicationContext context =
+                new ClassPathXmlApplicationContext("/META-INF/spring/integration/SftpInboundReceiveSample-context.xml", this.getClass());
+        RemoteFileTemplate<SftpClient.DirEntry> template = null;
+        String file1 = "a.txt";
+        String file2 = "b.txt";
+        String file3 = "c.bar";
+        Path file1Path = Paths.get(LOCAL_DIR, file1);
+        Path file2Path = Paths.get(LOCAL_DIR, file2);
+        try {
+            PollableChannel localFileChannel = context.getBean("receiveChannel", PollableChannel.class);
+            @SuppressWarnings("unchecked")
+            SessionFactory<SftpClient.DirEntry> sessionFactory = context.getBean(CachingSessionFactory.class);
+            template = new RemoteFileTemplate<>(sessionFactory);
+            SftpTestUtils.createTestFiles(template, file1, file2, file3);
 
-			SourcePollingChannelAdapter adapter = context.getBean(SourcePollingChannelAdapter.class);
-			adapter.start();
+            SourcePollingChannelAdapter adapter = context.getBean(SourcePollingChannelAdapter.class);
+            adapter.start();
 
-			Message<?> received;
-			if ((received = localFileChannel.receive()) != null) {
-				System.out.println("Received first file message: " + received);
-			}
-			if ((received = localFileChannel.receive()) != null) {
-				System.out.println("Received second file message: " + received);
-			}
-			if ((received = localFileChannel.receive(1000)) == null) {
-				System.out.println("No third file was received as expected");
-			}
-		}
-		finally {
-			SftpTestUtils.cleanUp(template, file1, file2, file3);
-			context.close();
-			try {
-				Files.delete(file1Path);
-				Files.delete(file2Path);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
+            Message<?> received;
+            if ((received = localFileChannel.receive()) != null) {
+                System.out.println("Received first file message: " + received);
+            }
+            if ((received = localFileChannel.receive()) != null) {
+                System.out.println("Received second file message: " + received);
+            }
+            if ((received = localFileChannel.receive(1000)) == null) {
+                System.out.println("No third file was received as expected");
+            }
+        } finally {
+            SftpTestUtils.cleanUp(template, file1, file2, file3);
+            context.close();
+            try {
+                Files.delete(file1Path);
+                Files.delete(file2Path);
+            } catch (IOException e) {
+                System.err.println("Error deleting local files: " + e.getMessage());
+            }
+        }
+    }
 
 }
