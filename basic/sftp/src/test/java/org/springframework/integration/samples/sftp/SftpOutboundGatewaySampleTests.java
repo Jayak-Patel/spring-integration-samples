@@ -88,8 +88,8 @@ public class SftpOutboundGatewaySampleTests {
             Files.delete(path);
         }
         catch (IOException e) {
-            // Log the error or handle it in an appropriate way
-            e.printStackTrace(); // or use a logging framework
+            System.err.println("Error deleting file: " + path);
+            e.printStackTrace();
         }
     }
 
