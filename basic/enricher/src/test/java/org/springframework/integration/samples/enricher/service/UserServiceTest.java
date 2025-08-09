@@ -32,38 +32,36 @@ public class UserServiceTest {
 
     @Test
     public void testStartupOfSpringIntegrationContext() throws Exception {
-        final ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(SPRING_INTEGRATION_CONTEXT_XML, UserServiceTest.class);
-        Thread.sleep(2000);
-        context.close();
+        try (ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(SPRING_INTEGRATION_CONTEXT_XML, UserServiceTest.class)) {
+            Thread.sleep(2000);
+        }
     }
 
     @Test
     public void testExecuteFindUser() {
-        final ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(SPRING_INTEGRATION_CONTEXT_XML, UserServiceTest.class);
+        try (ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(SPRING_INTEGRATION_CONTEXT_XML, UserServiceTest.class)) {
+            final UserService service = context.getBean(UserService.class);
 
-        final UserService service = context.getBean(UserService.class);
+            User user = new User("foo", null, null);
+            final User fullUser = service.findUser(user);
 
-        User user = new User("foo", null, null);
-        final User fullUser = service.findUser(user);
-
-        assertThat(fullUser.getUsername()).isEqualTo("foo");
-        assertThat(fullUser.getEmail()).isEqualTo("foo@springintegration.org");
-        assertThat(fullUser.getPassword()).isEqualTo("secret");
-        context.close();
+            assertThat(fullUser.getUsername()).isEqualTo("foo");
+            assertThat(fullUser.getEmail()).isEqualTo("foo@springintegration.org");
+            assertThat(fullUser.getPassword()).isEqualTo("secret");
+        }
     }
 
     @Test
     public void testExecuteFindUserByUsername() {
-        final ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(SPRING_INTEGRATION_CONTEXT_XML, UserServiceTest.class);
+        try (ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(SPRING_INTEGRATION_CONTEXT_XML, UserServiceTest.class)) {
+            final UserService service = context.getBean(UserService.class);
 
-        final UserService service = context.getBean(UserService.class);
+            User user = new User("foo", null, null);
+            final User fullUser = service.findUserByUsername(user);
 
-        User user = new User("foo", null, null);
-        final User fullUser = service.findUserByUsername(user);
-
-        assertThat(fullUser.getUsername()).isEqualTo("foo");
-        assertThat(fullUser.getEmail()).isEqualTo("foo@springintegration.org");
-        assertThat(fullUser.getPassword()).isEqualTo("secret");
-        context.close();
+            assertThat(fullUser.getUsername()).isEqualTo("foo");
+            assertThat(fullUser.getEmail()).isEqualTo("foo@springintegration.org");
+            assertThat(fullUser.getPassword()).isEqualTo("secret");
+        }
     }
 }
