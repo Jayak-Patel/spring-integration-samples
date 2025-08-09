@@ -39,7 +39,7 @@ public class UserServiceTest {
 
     @Test
     public void testExecuteFindUser() {
-        try (ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(SPRING_INTEGRATION_CONTEXT_XML, UserServiceTest.class)) {
+        try (ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(new String[] { SPRING_INTEGRATION_CONTEXT_XML }, UserServiceTest.class)) {
             final UserService service = context.getBean(UserService.class);
 
             User user = new User("foo", null, null);
@@ -53,7 +53,7 @@ public class UserServiceTest {
 
     @Test
     public void testExecuteFindUserByUsername() {
-        try (ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(SPRING_INTEGRATION_CONTEXT_XML, UserServiceTest.class)) {
+        try (ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(new String[] { SPRING_INTEGRATION_CONTEXT_XML }, UserServiceTest.class)) {
             final UserService service = context.getBean(UserService.class);
 
             User user = new User("foo", null, null);
