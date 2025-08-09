@@ -54,20 +54,23 @@ public class Delivery implements Serializable {
     }
 
     public List<Drink> getDeliveredDrinks() {
-        return deliveredDrinks;
+        return this.deliveredDrinks != null ? new ArrayList<>(this.deliveredDrinks) : null;
     }
 
     public void setDeliveredDrinks(List<Drink> deliveredDrinks) {
-        this.deliveredDrinks = new ArrayList<>(deliveredDrinks);
+        this.deliveredDrinks = deliveredDrinks != null ? new ArrayList<>(deliveredDrinks) : null;
     }
 
     @Override
     public String toString() {
         StringBuilder buffer = new StringBuilder(SEPARATOR + "\n");
         buffer.append("Order #").append(getOrderNumber()).append("\n");
-        for (Drink drink : getDeliveredDrinks()) {
-            buffer.append(drink);
-            buffer.append("\n");
+        List<Drink> drinks = getDeliveredDrinks();
+        if (drinks != null) {
+            for (Drink drink : drinks) {
+                buffer.append(drink);
+                buffer.append("\n");
+            }
         }
         buffer.append(SEPARATOR + "\n");
         return buffer.toString();
