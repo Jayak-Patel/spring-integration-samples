@@ -52,6 +52,8 @@ public abstract class BaseFtpTest {
 
     public static final File TEMPORARY_FOLDER = new File(LOCAL_FTP_TEMP_DIR);
 
+    public static final File temporaryFolder = TEMPORARY_FOLDER;
+
     public static FtpServer server;
 
     @BeforeAll
