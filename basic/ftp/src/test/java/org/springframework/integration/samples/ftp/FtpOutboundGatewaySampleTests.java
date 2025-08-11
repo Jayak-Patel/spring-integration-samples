@@ -16,6 +16,9 @@
 package org.springframework.integration.samples.ftp;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -47,26 +50,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class FtpOutboundGatewaySampleTests extends BaseFtpTest {
 
 
-	@Test
-	public void testLsGetRm() throws Exception {
-		ConfigurableApplicationContext ctx = new ClassPathXmlApplicationContext(
-				"classpath:/META-INF/spring/integration/FtpOutboundGatewaySample-context.xml");
+    @Test
+    public void testLsGetRm() throws Exception {
+        ConfigurableApplicationContext ctx = new ClassPathXmlApplicationContext(
+                "classpath:/META-INF/spring/integration/FtpOutboundGatewaySample-context.xml");
 
-		final ToFtpFlowGateway toFtpFlow = ctx.getBean(ToFtpFlowGateway.class);
+        final ToFtpFlowGateway toFtpFlow = ctx.getBean(ToFtpFlowGateway.class);
 
-		// execute the flow (ls, get, rm, aggregate results)
-		List<Boolean> rmResults = toFtpFlow.lsGetAndRmFiles("/");
+        // execute the flow (ls, get, rm, aggregate results)
+        List<Boolean> rmResults = toFtpFlow.lsGetAndRmFiles("/");
 
-		//Check everything went as expected, and clean up
-		assertThat(rmResults).hasSize(2);
+        //Check everything went as expected, and clean up
+        assertThat(rmResults).hasSize(2);
 
-		for (Boolean result : rmResults) {
-			assertThat(result).isTrue();
-		}
+        for (Boolean result : rmResults) {
+            assertThat(result).isTrue();
+        }
 
-		assertThat(new File(BaseFtpTest.FTP_ROOT_DIR).delete()).isTrue();
+        Path ftpRootDir = new File(BaseFtpTest.FTP_ROOT_DIR).toPath();
+        try {
+            Files.delete(ftpRootDir);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-		ctx.close();
-	}
+        ctx.close();
+    }
 
 }
