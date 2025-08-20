@@ -19,6 +19,8 @@ package org.springframework.integration.samples.cafe.demo;
 import java.util.Arrays;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.util.StringUtils;
 
@@ -39,38 +41,39 @@ import org.springframework.util.StringUtils;
  */
 public class CafeDemoApp {
 
+    private static final Logger logger = LoggerFactory.getLogger(CafeDemoApp.class);
 
-	public static void main(String[] args) {
+    public static void main(String[] args) {
 
-		List<String> languages = Arrays.asList(new String[]{"groovy","ruby","python"});
-		if (args.length != 1) {
-			usage();
-		}
-		String lang = args[0];
+        List<String> languages = Arrays.asList(new String[]{"groovy","ruby","python"});
+        if (args.length != 1) {
+            usage();
+        }
+        String lang = args[0];
 
-		if (!StringUtils.hasText(lang)){
-			usage();
-		}
+        if (!StringUtils.hasText(lang)){
+            usage();
+        }
 
-		lang = lang.toLowerCase();
-		if (!languages.contains(lang)){
-			usage();
-		}
+        lang = lang.toLowerCase();
+        if (!languages.contains(lang)){
+            usage();
+        }
 
-		/*
-		 * Create an application context and set the active profile to configure the
-		 * corresponding scripting implementation
-		 */
+        /*
+         * Create an application context and set the active profile to configure the
+         * corresponding scripting implementation
+         */
 
-		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext();
-		ctx.getEnvironment().setActiveProfiles(lang);
-		ctx.setConfigLocation("/META-INF/spring/integration/cafeDemo.xml");
-		ctx.refresh();
-	}
+        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext();
+        ctx.getEnvironment().setActiveProfiles(lang);
+        ctx.setConfigLocation("/META-INF/spring/integration/cafeDemo.xml");
+        ctx.refresh();
+    }
 
 
-	private static void usage() {
-		System.out.println("missing or invalid command line argument [groovy,ruby,python]");
-		System.exit(1);
-	}
+    private static void usage() {
+        logger.error("missing or invalid command line argument [groovy,ruby,python]");
+        System.exit(1);
+    }
 }
