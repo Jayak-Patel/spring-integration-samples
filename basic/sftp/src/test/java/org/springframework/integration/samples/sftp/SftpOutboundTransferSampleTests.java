@@ -20,6 +20,8 @@ import java.io.File;
 
 import org.apache.sshd.sftp.client.SftpClient;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.integration.file.remote.RemoteFileTemplate;
@@ -39,41 +41,42 @@ import org.springframework.util.Assert;
  */
 public class SftpOutboundTransferSampleTests {
 
-	@Test
-	public void testOutbound() throws Exception {
+    private static final Logger logger = LoggerFactory.getLogger(SftpOutboundTransferSampleTests.class);
 
-		final String sourceFileName = "README.md";
-		final String destinationFileName = sourceFileName + "_foo";
+    @Test
+    public void testOutbound() throws Exception {
 
-		final ClassPathXmlApplicationContext ac =
-				new ClassPathXmlApplicationContext("/META-INF/spring/integration/SftpOutboundTransferSample-context.xml",
-						SftpOutboundTransferSampleTests.class);
-		@SuppressWarnings("unchecked")
-		SessionFactory<SftpClient.DirEntry> sessionFactory = ac.getBean(CachingSessionFactory.class);
-		RemoteFileTemplate<SftpClient.DirEntry> template = new RemoteFileTemplate<>(sessionFactory);
-		SftpTestUtils.createTestFiles(template); // Just the directory
+        final String sourceFileName = "README.md";
+        final String destinationFileName = sourceFileName + "_foo";
 
-		try {
-			final File file = new File(sourceFileName);
+        final ClassPathXmlApplicationContext ac =
+                new ClassPathXmlApplicationContext("/META-INF/spring/integration/SftpOutboundTransferSample-context.xml",
+                        SftpOutboundTransferSampleTests.class);
+        @SuppressWarnings("unchecked")
+        SessionFactory<SftpClient.DirEntry> sessionFactory = ac.getBean(CachingSessionFactory.class);
+        RemoteFileTemplate<SftpClient.DirEntry> template = new RemoteFileTemplate<>(sessionFactory);
+        SftpTestUtils.createTestFiles(template); // Just the directory
 
-			Assert.isTrue(file.exists(), String.format("File '%s' does not exist.", sourceFileName));
+        try {
+            final File file = new File(sourceFileName);
 
-			final Message<File> message = MessageBuilder.withPayload(file).build();
-			final MessageChannel inputChannel = ac.getBean("inputChannel", MessageChannel.class);
+            Assert.isTrue(file.exists(), String.format("File '%s' does not exist.", sourceFileName));
 
-			inputChannel.send(message);
-			Thread.sleep(2000);
+            final Message<File> message = MessageBuilder.withPayload(file).build();
+            final MessageChannel inputChannel = ac.getBean("inputChannel", MessageChannel.class);
 
-			Assert.isTrue(SftpTestUtils.fileExists(template, destinationFileName),
-					String.format("File '%s' does not exist.", destinationFileName));
+            inputChannel.send(message);
+            Thread.sleep(2000);
 
-			System.out.printf("Successfully transferred '%s' file to a " +
-					"remote location under the name '%s'%n", sourceFileName, destinationFileName);
-		}
-		finally {
-			SftpTestUtils.cleanUp(template, destinationFileName);
-			ac.close();
-		}
-	}
+            Assert.isTrue(SftpTestUtils.fileExists(template, destinationFileName),
+                    String.format("File '%s' does not exist.", destinationFileName));
+
+            logger.info("Successfully transferred '{}' file to a remote location under the name '{}'", sourceFileName, destinationFileName);
+        }
+        finally {
+            SftpTestUtils.cleanUp(template, destinationFileName);
+            ac.close();
+        }
+    }
 
 }

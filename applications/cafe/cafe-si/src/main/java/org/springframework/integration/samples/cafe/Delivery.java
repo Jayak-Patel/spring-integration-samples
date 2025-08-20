@@ -29,50 +29,50 @@ import java.util.List;
  */
 public class Delivery implements Serializable {
 
-	@Serial
-	private static final long serialVersionUID = 1L;
+    @Serial
+    private static final long serialVersionUID = 1L;
 
-	private static final String SEPARATOR = "-----------------------";
+    private static final String SEPARATOR = "-----------------------";
 
-	private ArrayList<Drink> deliveredDrinks;
+    private transient ArrayList<Drink> deliveredDrinks;
 
-	private int orderNumber;
+    private int orderNumber;
 
-	// Default constructor required by Jackson Java JSON-processor
-	public Delivery() {
-	}
+    // Default constructor required by Jackson Java JSON-processor
+    public Delivery() {
+    }
 
-	public Delivery(List<Drink> deliveredDrinks) {
-		this.deliveredDrinks = new ArrayList<>(deliveredDrinks);
-		this.orderNumber = deliveredDrinks.get(0).getOrderNumber();
-	}
+    public Delivery(List<Drink> deliveredDrinks) {
+        this.deliveredDrinks = new ArrayList<>(deliveredDrinks);
+        this.orderNumber = deliveredDrinks.get(0).getOrderNumber();
+    }
 
-	public int getOrderNumber() {
-		return orderNumber;
-	}
+    public int getOrderNumber() {
+        return orderNumber;
+    }
 
-	public void setOrderNumber(int orderNumber) {
-		this.orderNumber = orderNumber;
-	}
+    public void setOrderNumber(int orderNumber) {
+        this.orderNumber = orderNumber;
+    }
 
-	public List<Drink> getDeliveredDrinks() {
-		return deliveredDrinks;
-	}
+    public List<Drink> getDeliveredDrinks() {
+        return deliveredDrinks;
+    }
 
-	public void setDeliveredDrinks(List<Drink> deliveredDrinks) {
-		this.deliveredDrinks = new ArrayList<>(deliveredDrinks);
-	}
+    public void setDeliveredDrinks(List<Drink> deliveredDrinks) {
+        this.deliveredDrinks = new ArrayList<>(deliveredDrinks);
+    }
 
-	@Override
-	public String toString() {
-		StringBuilder buffer = new StringBuilder(SEPARATOR + "\n");
-		buffer.append("Order #").append(getOrderNumber()).append("\n");
-		for (Drink drink : getDeliveredDrinks()) {
-			buffer.append(drink);
-			buffer.append("\n");
-		}
-		buffer.append(SEPARATOR + "\n");
-		return buffer.toString();
-	}
+    @Override
+    public String toString() {
+        StringBuilder buffer = new StringBuilder(SEPARATOR + "\n");
+        buffer.append("Order #").append(getOrderNumber()).append("\n");
+        for (Drink drink : getDeliveredDrinks()) {
+            buffer.append(drink);
+            buffer.append("\n");
+        }
+        buffer.append(SEPARATOR + "\n");
+        return buffer.toString();
+    }
 
 }
