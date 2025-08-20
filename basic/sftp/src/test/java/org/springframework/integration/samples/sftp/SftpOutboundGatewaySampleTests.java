@@ -17,6 +17,10 @@
 package org.springframework.integration.samples.sftp;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.apache.sshd.sftp.client.SftpClient;
@@ -50,12 +54,12 @@ public class SftpOutboundGatewaySampleTests {
 		RemoteFileTemplate<SftpClient.DirEntry> template = null;
 		String file1 = "1.ftptest";
 		String file2 = "2.ftptest";
-		File tmpDir = new File(System.getProperty("java.io.tmpdir"));
+		Path tmpDir = Paths.get(System.getProperty("java.io.tmpdir"));
 
 		try {
 			// remove the previous output files if necessary
-			new File(tmpDir, file1).delete();
-			new File(tmpDir, file2).delete();
+			deleteFileIfExists(tmpDir.resolve(file1));
+			deleteFileIfExists(tmpDir.resolve(file2));
 
 			@SuppressWarnings("unchecked")
 			SessionFactory<SftpClient.DirEntry> sessionFactory = ctx.getBean(CachingSessionFactory.class);
@@ -65,7 +69,7 @@ public class SftpOutboundGatewaySampleTests {
 			// execute the flow (ls, get, rm, aggregate results)
 			List<Boolean> rmResults = toFtpFlow.lsGetAndRmFiles("si.sftp.sample");
 
-			//Check everything went as expected, and clean up
+			// Check everything went as expected, and clean up
 			assertThat(rmResults).hasSize(2);
 			for (Boolean result : rmResults) {
 				assertThat(result).isTrue();
@@ -75,8 +79,17 @@ public class SftpOutboundGatewaySampleTests {
 		finally {
 			SftpTestUtils.cleanUp(template, file1, file2);
 			ctx.close();
-			assertThat(new File(tmpDir, file1).delete()).isTrue();
-			assertThat(new File(tmpDir, file2).delete()).isTrue();
+			deleteFileIfExists(tmpDir.resolve(file1));
+			deleteFileIfExists(tmpDir.resolve(file2));
+		}
+	}
+
+	private static void deleteFileIfExists(Path path) {
+		try {
+			Files.deleteIfExists(path);
+		}
+		catch (IOException e) {
+			// Handle the exception appropriately
 		}
 	}
 
