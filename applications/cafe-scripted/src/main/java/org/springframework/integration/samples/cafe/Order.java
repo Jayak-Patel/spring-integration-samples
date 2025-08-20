@@ -25,7 +25,7 @@ import java.util.List;
  */
 public class Order {
 
-	private final List<OrderItem> orderItems = new ArrayList<OrderItem>();
+	private final List<OrderItem> orderItems = new ArrayList<>();
 
 	private final int number;
 
