@@ -23,3 +23,8 @@ build/
 .mvn
 mvnw*
 .vscode
+.scannerwork
+build
+target
+dist
+node_modules
